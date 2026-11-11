@@ -111,7 +111,7 @@ limesurvey_update_title <- function(sid, title, language) {
 #'
 #' @export
 limesurvey_delete_survey <- function(sid) {
-  sid <- limesurvey_validate_sid(sid)
+  sid <- limesurvey_validate_id(sid, "sid")
 
   csrf <- limesurvey_csrf_fetch("/index.php/surveyAdministration/listsurveys")
 
@@ -144,7 +144,7 @@ limesurvey_delete_survey <- function(sid) {
 #'
 #' @export
 limesurvey_copy_survey <- function(sid, title = NULL) {
-  sid <- limesurvey_validate_sid(sid)
+  sid <- limesurvey_validate_id(sid, "sid")
   if (!is.null(title) && (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title))) {
     stop("'title' must be NULL or a single non-empty character string.", call. = FALSE)
   }
@@ -181,11 +181,11 @@ limesurvey_copy_survey <- function(sid, title = NULL) {
   invisible(as.integer(new_sid))
 }
 
-limesurvey_validate_sid <- function(sid) {
-  if (!is.numeric(sid) || length(sid) != 1 || is.na(sid) || sid != as.integer(sid)) {
-    stop("'sid' must be a single integer survey id.", call. = FALSE)
+limesurvey_validate_id <- function(x, name = "sid") {
+  if (!is.numeric(x) || length(x) != 1 || is.na(x) || x != as.integer(x)) {
+    stop(sprintf("'%s' must be a single integer id.", name), call. = FALSE)
   }
-  as.integer(sid)
+  as.integer(x)
 }
 
 regmatches_first <- function(x, pattern) {
