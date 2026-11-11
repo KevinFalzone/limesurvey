@@ -7,6 +7,10 @@ Description: What the package does (one paragraph).
 License: MIT + file LICENSE
 Depends:
     R (>= 4.1)
+Imports:
+    httr2,
+    rlang,
+    rvest
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
