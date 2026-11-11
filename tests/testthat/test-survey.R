@@ -20,3 +20,15 @@ test_that("limesurvey_delete_survey validates 'sid'", {
   expect_error(limesurvey_delete_survey(1.5), "sid")
   expect_error(limesurvey_delete_survey(c(1, 2)), "sid")
 })
+
+test_that("limesurvey_copy_survey validates 'sid'", {
+  expect_error(limesurvey_copy_survey("511927"), "sid")
+  expect_error(limesurvey_copy_survey(NA), "sid")
+  expect_error(limesurvey_copy_survey(1.5), "sid")
+})
+
+test_that("limesurvey_copy_survey validates 'title'", {
+  expect_error(limesurvey_copy_survey(1, title = ""), "title")
+  expect_error(limesurvey_copy_survey(1, title = NA), "title")
+  expect_error(limesurvey_copy_survey(1, title = 1), "title")
+})

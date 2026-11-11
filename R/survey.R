@@ -129,6 +129,58 @@ limesurvey_delete_survey <- function(sid) {
   invisible(sid)
 }
 
+#' Copy a LimeSurvey Survey
+#'
+#' Copies an existing survey on the configured LimeSurvey instance by
+#' replaying the admin web UI's "Copy" action, including its question
+#' groups, questions, answer options, quotas, permissions, and resource
+#' files.
+#'
+#' @param sid An integer (or integer-coercible) id of the survey to copy.
+#' @param title A character string: the new survey's title. If `NULL`
+#'   (default), LimeSurvey assigns `"<original title> - Copy"`.
+#'
+#' @return Invisibly, the integer survey id (`sid`) of the new copy.
+#'
+#' @export
+limesurvey_copy_survey <- function(sid, title = NULL) {
+  sid <- limesurvey_validate_sid(sid)
+  if (!is.null(title) && (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title))) {
+    stop("'title' must be NULL or a single non-empty character string.", call. = FALSE)
+  }
+
+  csrf <- limesurvey_csrf_fetch("/index.php/surveyAdministration/listsurveys")
+
+  req <- req_body_form(
+    limesurvey_request(
+      "/index.php/surveyAdministration/copy",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    surveyIdToCopy = sid,
+    copysurveytitle = if (is.null(title)) "" else title,
+    copysurveyid = "",
+    copyResourcesAndLinks = 1,
+    copySurveyQuotas = 1,
+    copySurveyPermissions = 1,
+    copyAnswerOptions = 1,
+    copySurveyUrlParameters = 1,
+    copySurveyConditions = 1,
+    copyStartEndDate = 1,
+    resetResponseStartId = 1
+  )
+  resp <- req_perform(req)
+  html <- resp_body_html(resp)
+
+  onclick <- html_attr(html_element(html, "input[onclick*=\"iSurveyID=\"]"), "onclick")
+  new_sid <- regmatches_first(onclick, "iSurveyID=([0-9]+)")
+  if (is.na(new_sid)) {
+    stop("Could not determine the copied survey id from the response.", call. = FALSE)
+  }
+
+  invisible(as.integer(new_sid))
+}
+
 limesurvey_validate_sid <- function(sid) {
   if (!is.numeric(sid) || length(sid) != 1 || is.na(sid) || sid != as.integer(sid)) {
     stop("'sid' must be a single integer survey id.", call. = FALSE)
