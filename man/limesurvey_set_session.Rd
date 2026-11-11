@@ -7,17 +7,14 @@
 limesurvey_set_session(url, token)
 }
 \arguments{
-\item{url}{A character string representing the LimeSurvey instance URL.
-A trailing slash is added automatically if missing.}
+\item{url}{A character string representing the LimeSurvey instance URL.}
 
-\item{token}{A character string representing the LimeSurvey session
-token.}
+\item{token}{A character string representing the LimeSurvey session token.}
 }
 \value{
 Invisibly, the session list.
 }
 \description{
 Stores the instance URL and authentication token reused by the other
-\verb{limesurvey_*} functions. The token is typically obtained from
-\code{ulconnect::limesurvey_get_token()}.
+\verb{limesurvey_*} functions.
 }
