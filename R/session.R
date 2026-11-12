@@ -1,9 +1,9 @@
-limesurvey_env <- new.env(parent = emptyenv())
+ls_env <- new.env(parent = emptyenv())
 
 #' Set the LimeSurvey Session
 #'
 #' Stores the instance URL and authentication token reused by the other
-#' `limesurvey_*` functions.
+#' `ls_*` functions.
 #'
 #' @param url A character string representing the LimeSurvey instance URL.
 #' @param token A character string representing the LimeSurvey session token.
@@ -11,7 +11,7 @@ limesurvey_env <- new.env(parent = emptyenv())
 #' @return Invisibly, the session list.
 #'
 #' @export
-limesurvey_set_session <- function(url, token) {
+ls_set_session <- function(url, token) {
   if (!is.character(url) || length(url) != 1 || is.na(url) || !nzchar(url)) {
     stop("'url' must be a single non-empty character string.", call. = FALSE)
   }
@@ -25,20 +25,20 @@ limesurvey_set_session <- function(url, token) {
   }
 
   session <- list(url = url, token = token)
-  assign("session", session, envir = limesurvey_env)
+  assign("session", session, envir = ls_env)
   invisible(session)
 }
 
-limesurvey_get_session <- function() {
-  if (!exists("session", envir = limesurvey_env)) {
-    stop("No session set. Call limesurvey_set_session() first.", call. = FALSE)
+ls_get_session <- function() {
+  if (!exists("session", envir = ls_env)) {
+    stop("No session set. Call ls_set_session() first.", call. = FALSE)
   }
-  get("session", envir = limesurvey_env)
+  get("session", envir = ls_env)
 }
 
 #' @importFrom utils modifyList
-limesurvey_resolve_session <- function(overrides) {
-  session <- limesurvey_get_session()
+ls_resolve_session <- function(overrides) {
+  session <- ls_get_session()
   unknown <- setdiff(names(overrides), names(session))
   if (length(unknown) > 0) {
     stop("Unknown parameter(s): ", paste(unknown, collapse = ", "), call. = FALSE)
