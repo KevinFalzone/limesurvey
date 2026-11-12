@@ -1,10 +1,10 @@
-limesurvey_cookie_name <- "LS-PBAAKGBRRSWIIXON"
+ls_cookie_name <- "LS-PBAAKGBRRSWIIXON"
 
 #' @importFrom httr2 request req_headers
-limesurvey_request <- function(path, ajax = TRUE, csrf_cookie = NULL) {
-  session <- limesurvey_get_session()
+ls_request <- function(path, ajax = TRUE, csrf_cookie = NULL) {
+  session <- ls_get_session()
   base_url <- sub("/$", "", session$url)
-  cookie <- paste0(limesurvey_cookie_name, "=", session$token)
+  cookie <- paste0(ls_cookie_name, "=", session$token)
   if (!is.null(csrf_cookie)) {
     cookie <- paste0(cookie, "; YII_CSRF_TOKEN=", csrf_cookie)
   }
@@ -18,7 +18,7 @@ limesurvey_request <- function(path, ajax = TRUE, csrf_cookie = NULL) {
 }
 
 #' @importFrom rvest html_element html_attr
-limesurvey_csrf_token <- function(html) {
+ls_csrf_token <- function(html) {
   token <- html_attr(html_element(html, "input[name=\"YII_CSRF_TOKEN\"]"), "value")
   if (is.na(token) || !nzchar(token)) {
     stop("Could not find the CSRF token (page layout may have changed).", call. = FALSE)
@@ -35,8 +35,8 @@ limesurvey_csrf_token <- function(html) {
 #'
 #' @noRd
 #' @importFrom httr2 req_perform resp_body_html resp_headers
-limesurvey_csrf_fetch <- function(path) {
-  resp <- req_perform(limesurvey_request(path))
+ls_csrf_fetch <- function(path) {
+  resp <- req_perform(ls_request(path))
   html <- resp_body_html(resp)
 
   set_cookie <- resp_headers(resp)[["set-cookie"]]
@@ -45,5 +45,5 @@ limesurvey_csrf_fetch <- function(path) {
   }
   csrf_cookie <- sub("^YII_CSRF_TOKEN=([^;]+);.*$", "\\1", set_cookie)
 
-  list(html = html, token = limesurvey_csrf_token(html), cookie = csrf_cookie)
+  list(html = html, token = ls_csrf_token(html), cookie = csrf_cookie)
 }

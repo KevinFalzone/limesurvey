@@ -15,7 +15,7 @@
 #'   survey.
 #'
 #' @export
-limesurvey_create_survey <- function(title, language = "en", format = "G") {
+ls_create_survey <- function(title, language = "en", format = "G") {
   if (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title)) {
     stop("'title' must be a single non-empty character string.", call. = FALSE)
   }
@@ -26,16 +26,16 @@ limesurvey_create_survey <- function(title, language = "en", format = "G") {
     stop("'format' must be one of \"G\", \"S\", or \"A\".", call. = FALSE)
   }
 
-  sid <- limesurvey_new_survey()
-  limesurvey_update_general_settings(sid, language = language, format = format)
-  limesurvey_update_title(sid, title = title, language = language)
+  sid <- ls_new_survey()
+  ls_update_general_settings(sid, language = language, format = format)
+  ls_update_title(sid, title = title, language = language)
 
   invisible(sid)
 }
 
 #' @importFrom httr2 req_perform resp_url
-limesurvey_new_survey <- function() {
-  resp <- req_perform(limesurvey_request("/index.php/surveyAdministration/newSurvey"))
+ls_new_survey <- function() {
+  resp <- req_perform(ls_request("/index.php/surveyAdministration/newSurvey"))
   url <- resp_url(resp)
   sid <- regmatches_first(url, "surveyid=([0-9]+)")
   if (is.na(sid)) {
@@ -45,14 +45,14 @@ limesurvey_new_survey <- function() {
 }
 
 #' @importFrom httr2 req_body_form req_perform
-limesurvey_update_general_settings <- function(sid, language, format) {
-  csrf <- limesurvey_csrf_fetch(sprintf(
+ls_update_general_settings <- function(sid, language, format) {
+  csrf <- ls_csrf_fetch(sprintf(
     "/index.php/surveyAdministration/rendersidemenulink?subaction=generalsettings&surveyid=%d",
     sid
   ))
 
   req <- req_body_form(
-    limesurvey_request(
+    ls_request(
       "/index.php/admin/database/index/updatesurveylocalesettings_generalsettings",
       csrf_cookie = csrf$cookie
     ),
@@ -74,8 +74,8 @@ limesurvey_update_general_settings <- function(sid, language, format) {
 }
 
 #' @importFrom httr2 req_body_form req_perform
-limesurvey_update_title <- function(sid, title, language) {
-  csrf <- limesurvey_csrf_fetch(sprintf(
+ls_update_title <- function(sid, title, language) {
+  csrf <- ls_csrf_fetch(sprintf(
     "/index.php/surveyAdministration/rendersidemenulink?subaction=surveytexts&surveyid=%d",
     sid
   ))
@@ -90,7 +90,7 @@ limesurvey_update_title <- function(sid, title, language) {
   fields[[paste0("short_title_", language)]] <- title
 
   req <- req_body_form(
-    limesurvey_request(
+    ls_request(
       "/index.php/admin/database/index/updatesurveylocalesettings",
       csrf_cookie = csrf$cookie
     ),
@@ -110,13 +110,13 @@ limesurvey_update_title <- function(sid, title, language) {
 #' @return Invisibly, the integer survey id that was deleted.
 #'
 #' @export
-limesurvey_delete_survey <- function(sid) {
-  sid <- limesurvey_validate_id(sid, "sid")
+ls_delete_survey <- function(sid) {
+  sid <- ls_validate_id(sid, "sid")
 
-  csrf <- limesurvey_csrf_fetch("/index.php/surveyAdministration/listsurveys")
+  csrf <- ls_csrf_fetch("/index.php/surveyAdministration/listsurveys")
 
   req <- req_body_form(
-    limesurvey_request(
+    ls_request(
       "/index.php/surveyAdministration/delete",
       csrf_cookie = csrf$cookie
     ),
@@ -143,16 +143,16 @@ limesurvey_delete_survey <- function(sid) {
 #' @return Invisibly, the integer survey id (`sid`) of the new copy.
 #'
 #' @export
-limesurvey_copy_survey <- function(sid, title = NULL) {
-  sid <- limesurvey_validate_id(sid, "sid")
+ls_copy_survey <- function(sid, title = NULL) {
+  sid <- ls_validate_id(sid, "sid")
   if (!is.null(title) && (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title))) {
     stop("'title' must be NULL or a single non-empty character string.", call. = FALSE)
   }
 
-  csrf <- limesurvey_csrf_fetch("/index.php/surveyAdministration/listsurveys")
+  csrf <- ls_csrf_fetch("/index.php/surveyAdministration/listsurveys")
 
   req <- req_body_form(
-    limesurvey_request(
+    ls_request(
       "/index.php/surveyAdministration/copy",
       csrf_cookie = csrf$cookie
     ),
@@ -181,7 +181,7 @@ limesurvey_copy_survey <- function(sid, title = NULL) {
   invisible(as.integer(new_sid))
 }
 
-limesurvey_validate_id <- function(x, name = "sid") {
+ls_validate_id <- function(x, name = "sid") {
   if (!is.numeric(x) || length(x) != 1 || is.na(x) || x != as.integer(x)) {
     stop(sprintf("'%s' must be a single integer id.", name), call. = FALSE)
   }

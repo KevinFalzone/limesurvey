@@ -4,10 +4,10 @@
 #' admin web UI's question type selector. Some type codes support more
 #' than one theme (e.g. list-radio vs. image-select); this table only
 #' keeps each type's default/canonical theme. Pass `question_theme_name`
-#' explicitly to [limesurvey_save_question()] to use a different one.
+#' explicitly to [ls_save_question()] to use a different one.
 #'
 #' @noRd
-limesurvey_question_types <- c(
+ls_question_types <- c(
   ";" = "arrays/texts",
   ":" = "arrays/multiflexi",
   "!" = "list_dropdown",
@@ -115,16 +115,16 @@ limesurvey_question_types <- c(
 #'
 #' @return Invisibly, the integer question id (`qid`), carrying `sid`
 #'   and `gid` as attributes so it can be piped straight into another
-#'   [limesurvey_save_question()] call (same group) or into
-#'   [limesurvey_save_group()] (new group, same survey), e.g.
-#'   `sid |> limesurvey_save_group(name = "A") |>
-#'   limesurvey_save_question(code = "Q1", text = "...") |>
-#'   limesurvey_save_question(code = "Q2", text = "...") |>
-#'   limesurvey_save_group(name = "B") |>
-#'   limesurvey_save_question(code = "Q3", text = "...")`.
+#'   [ls_save_question()] call (same group) or into
+#'   [ls_save_group()] (new group, same survey), e.g.
+#'   `sid |> ls_save_group(name = "A") |>
+#'   ls_save_question(code = "Q1", text = "...") |>
+#'   ls_save_question(code = "Q2", text = "...") |>
+#'   ls_save_group(name = "B") |>
+#'   ls_save_question(code = "Q3", text = "...")`.
 #'
 #' @export
-limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text,
+ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text,
                                       question_theme_name = NULL,
                                       help = NULL, language = "en", answers = NULL,
                                       general_settings = list(),
@@ -137,10 +137,10 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
     gid <- as.integer(sid)
     sid <- attr(sid, "sid")
   }
-  sid <- limesurvey_validate_id(sid, "sid")
-  gid <- limesurvey_validate_id(gid, "gid")
+  sid <- ls_validate_id(sid, "sid")
+  gid <- ls_validate_id(gid, "gid")
   if (!is.null(qid)) {
-    qid <- limesurvey_validate_id(qid, "qid")
+    qid <- ls_validate_id(qid, "qid")
   }
   if (!is.character(code) || length(code) != 1 || is.na(code) || !nzchar(code)) {
     stop("'code' must be a single non-empty character string.", call. = FALSE)
@@ -148,14 +148,14 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
   if (!is.character(text) || length(text) != 1 || is.na(text) || !nzchar(text)) {
     stop("'text' must be a single non-empty character string.", call. = FALSE)
   }
-  if (!is.character(type) || length(type) != 1 || is.na(type) || !type %in% names(limesurvey_question_types)) {
+  if (!is.character(type) || length(type) != 1 || is.na(type) || !type %in% names(ls_question_types)) {
     stop(
-      "'type' must be one of: ", paste(names(limesurvey_question_types), collapse = ", "),
+      "'type' must be one of: ", paste(names(ls_question_types), collapse = ", "),
       call. = FALSE
     )
   }
   if (is.null(question_theme_name)) {
-    question_theme_name <- limesurvey_question_types[[type]]
+    question_theme_name <- ls_question_types[[type]]
   }
 
   advanced_settings <- list(
@@ -208,7 +208,7 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
   } else {
     sprintf("/index.php/questionAdministration/view?surveyid=%d&gid=%d&qid=%d", sid, gid, qid)
   }
-  csrf <- limesurvey_csrf_fetch(csrf_path)
+  csrf <- ls_csrf_fetch(csrf_path)
 
   fields <- list(
     YII_CSRF_TOKEN = csrf$token,
@@ -225,11 +225,11 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
   fields[[sprintf("questionI10N[%s][question]", language)]] <- text
   fields[[sprintf("questionI10N[%s][help]", language)]] <- if (is.null(help)) "" else help
 
-  fields <- c(fields, limesurvey_flatten_fields("question", general_settings))
+  fields <- c(fields, ls_flatten_fields("question", general_settings))
   for (category in c("logic", "display", "input", "other", "timer", "statistics")) {
     settings <- advanced_settings[[category]]
     if (length(settings) > 0) {
-      fields <- c(fields, limesurvey_flatten_fields(sprintf("advancedSettings[%s]", category), settings))
+      fields <- c(fields, ls_flatten_fields(sprintf("advancedSettings[%s]", category), settings))
     }
   }
 
@@ -243,7 +243,7 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
   }
 
   req <- req_body_form(
-    limesurvey_request("/index.php/questionAdministration/saveQuestionData", csrf_cookie = csrf$cookie),
+    ls_request("/index.php/questionAdministration/saveQuestionData", csrf_cookie = csrf$cookie),
     !!!fields
   )
   resp <- req_perform(req)
@@ -262,13 +262,13 @@ limesurvey_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "
 #' array naming LimeSurvey's admin forms use (e.g. `advancedSettings[logic][...]`).
 #'
 #' @noRd
-limesurvey_flatten_fields <- function(prefix, x) {
+ls_flatten_fields <- function(prefix, x) {
   fields <- list()
   for (key in names(x)) {
     value <- x[[key]]
     path <- sprintf("%s[%s]", prefix, key)
     if (is.list(value)) {
-      fields <- c(fields, limesurvey_flatten_fields(path, value))
+      fields <- c(fields, ls_flatten_fields(path, value))
     } else {
       fields[[path]] <- value
     }
