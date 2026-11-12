@@ -3,16 +3,34 @@
 export(ls_copy_survey)
 export(ls_create_survey)
 export(ls_delete_survey)
+export(ls_get_data)
+export(ls_get_questions)
 export(ls_save_group)
 export(ls_save_question)
 export(ls_set_session)
-importFrom(httr2,req_body_form)
-importFrom(httr2,req_headers)
-importFrom(httr2,req_perform)
-importFrom(httr2,request)
-importFrom(httr2,resp_body_html)
-importFrom(httr2,resp_headers)
-importFrom(httr2,resp_url)
-importFrom(rvest,html_attr)
-importFrom(rvest,html_element)
+importFrom(dplyr,
+  filter,
+  mutate,
+  pull,
+  select
+)
+importFrom(httr2,
+  req_body_form,
+  req_headers,
+  req_perform,
+  request,
+  resp_body_html,
+  resp_body_string,
+  resp_header,
+  resp_headers,
+  resp_url
+)
+importFrom(readr,
+  read_csv,
+  read_tsv
+)
+importFrom(rvest,
+  html_attr,
+  html_element
+)
 importFrom(utils,modifyList)
