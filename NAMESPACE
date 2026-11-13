@@ -5,6 +5,7 @@ export(ls_create_survey)
 export(ls_delete_survey)
 export(ls_get_data)
 export(ls_get_questions)
+export(ls_get_version)
 export(ls_save_group)
 export(ls_save_question)
 export(ls_set_session)
@@ -31,6 +32,7 @@ importFrom(readr,
 )
 importFrom(rvest,
   html_attr,
-  html_element
+  html_element,
+  html_text2
 )
 importFrom(utils,modifyList)
