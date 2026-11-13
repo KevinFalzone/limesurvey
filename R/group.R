@@ -23,26 +23,54 @@
 #'   ls_save_question(code = "Q1", text = "...")`.
 #'
 #' @export
-ls_save_group <- function(sid, name, gid = NULL, description = NULL, language = "en", condition = 1) {
+ls_save_group <- function(
+  sid,
+  name,
+  gid = NULL,
+  description = NULL,
+  language = "en",
+  condition = 1
+) {
   sid <- if (!is.null(attr(sid, "sid"))) attr(sid, "sid") else sid
   sid <- ls_validate_id(sid, "sid")
-  if (!is.character(name) || length(name) != 1 || is.na(name) || !nzchar(name)) {
+  if (
+    !is.character(name) || length(name) != 1 || is.na(name) || !nzchar(name)
+  ) {
     stop("'name' must be a single non-empty character string.", call. = FALSE)
   }
   if (!is.null(gid)) {
     gid <- ls_validate_id(gid, "gid")
   }
-  if (!is.character(language) || length(language) != 1 || is.na(language) || !nzchar(language)) {
-    stop("'language' must be a single non-empty character string.", call. = FALSE)
+  if (
+    !is.character(language) ||
+      length(language) != 1 ||
+      is.na(language) ||
+      !nzchar(language)
+  ) {
+    stop(
+      "'language' must be a single non-empty character string.",
+      call. = FALSE
+    )
   }
-  if (length(condition) != 1 || is.na(condition) || !nzchar(trimws(as.character(condition)))) {
-    stop("'condition' must be a single non-empty relevance equation.", call. = FALSE)
+  if (
+    length(condition) != 1 ||
+      is.na(condition) ||
+      !nzchar(trimws(as.character(condition)))
+  ) {
+    stop(
+      "'condition' must be a single non-empty relevance equation.",
+      call. = FALSE
+    )
   }
 
   csrf_path <- if (is.null(gid)) {
     sprintf("/index.php/questionGroupsAdministration/add?surveyid=%d", sid)
   } else {
-    sprintf("/index.php/questionGroupsAdministration/edit/surveyid/%d/gid/%d", sid, gid)
+    sprintf(
+      "/index.php/questionGroupsAdministration/edit/surveyid/%d/gid/%d",
+      sid,
+      gid
+    )
   }
   csrf <- ls_csrf_fetch(csrf_path)
 
@@ -51,13 +79,22 @@ ls_save_group <- function(sid, name, gid = NULL, description = NULL, language = 
     fields[["questionGroup[gid]"]] <- gid
   }
   fields[[sprintf("questionGroupI10N[%s][group_name]", language)]] <- name
-  fields[[sprintf("questionGroupI10N[%s][description]", language)]] <- if (is.null(description)) "" else description
+  fields[[sprintf("questionGroupI10N[%s][description]", language)]] <- if (
+    is.null(description)
+  ) {
+    ""
+  } else {
+    description
+  }
   fields[["questionGroup[randomization_group]"]] <- ""
   fields[["questionGroup[grelevance]"]] <- as.character(condition)
 
   req <- req_body_form(
     ls_request(
-      sprintf("/index.php/questionGroupsAdministration/saveQuestionGroupData/sid/%d", sid),
+      sprintf(
+        "/index.php/questionGroupsAdministration/saveQuestionGroupData/sid/%d",
+        sid
+      ),
       csrf_cookie = csrf$cookie
     ),
     !!!fields
@@ -66,7 +103,10 @@ ls_save_group <- function(sid, name, gid = NULL, description = NULL, language = 
 
   new_gid <- regmatches_first(resp_url(resp), "gid=([0-9]+)")
   if (is.na(new_gid)) {
-    stop("Could not determine the question group id from the response.", call. = FALSE)
+    stop(
+      "Could not determine the question group id from the response.",
+      call. = FALSE
+    )
   }
   invisible(structure(as.integer(new_gid), sid = sid))
 }

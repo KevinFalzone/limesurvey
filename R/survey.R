@@ -16,13 +16,27 @@
 #'
 #' @export
 ls_create_survey <- function(title, language = "en", format = "G") {
-  if (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title)) {
+  if (
+    !is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title)
+  ) {
     stop("'title' must be a single non-empty character string.", call. = FALSE)
   }
-  if (!is.character(language) || length(language) != 1 || is.na(language) || !nzchar(language)) {
-    stop("'language' must be a single non-empty character string.", call. = FALSE)
+  if (
+    !is.character(language) ||
+      length(language) != 1 ||
+      is.na(language) ||
+      !nzchar(language)
+  ) {
+    stop(
+      "'language' must be a single non-empty character string.",
+      call. = FALSE
+    )
   }
-  if (!is.character(format) || length(format) != 1 || !format %in% c("G", "S", "A")) {
+  if (
+    !is.character(format) ||
+      length(format) != 1 ||
+      !format %in% c("G", "S", "A")
+  ) {
     stop("'format' must be one of \"G\", \"S\", or \"A\".", call. = FALSE)
   }
 
@@ -39,7 +53,10 @@ ls_new_survey <- function() {
   url <- resp_url(resp)
   sid <- regmatches_first(url, "surveyid=([0-9]+)")
   if (is.na(sid)) {
-    stop("Could not determine the new survey id from the response.", call. = FALSE)
+    stop(
+      "Could not determine the new survey id from the response.",
+      call. = FALSE
+    )
   }
   as.integer(sid)
 }
@@ -145,8 +162,17 @@ ls_delete_survey <- function(sid) {
 #' @export
 ls_copy_survey <- function(sid, title = NULL) {
   sid <- ls_validate_id(sid, "sid")
-  if (!is.null(title) && (!is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title))) {
-    stop("'title' must be NULL or a single non-empty character string.", call. = FALSE)
+  if (
+    !is.null(title) &&
+      (!is.character(title) ||
+        length(title) != 1 ||
+        is.na(title) ||
+        !nzchar(title))
+  ) {
+    stop(
+      "'title' must be NULL or a single non-empty character string.",
+      call. = FALSE
+    )
   }
 
   csrf <- ls_csrf_fetch("/index.php/surveyAdministration/listsurveys")
@@ -172,10 +198,16 @@ ls_copy_survey <- function(sid, title = NULL) {
   resp <- req_perform(req)
   html <- resp_body_html(resp)
 
-  onclick <- html_attr(html_element(html, "input[onclick*=\"iSurveyID=\"]"), "onclick")
+  onclick <- html_attr(
+    html_element(html, "input[onclick*=\"iSurveyID=\"]"),
+    "onclick"
+  )
   new_sid <- regmatches_first(onclick, "iSurveyID=([0-9]+)")
   if (is.na(new_sid)) {
-    stop("Could not determine the copied survey id from the response.", call. = FALSE)
+    stop(
+      "Could not determine the copied survey id from the response.",
+      call. = FALSE
+    )
   }
 
   invisible(as.integer(new_sid))

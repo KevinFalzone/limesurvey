@@ -124,12 +124,25 @@ ls_question_types <- c(
 #'   ls_save_question(code = "Q3", text = "...")`.
 #'
 #' @export
-ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text,
-                                      question_theme_name = NULL,
-                                      help = NULL, language = "en", answers = NULL,
-                                      general_settings = list(),
-                                      logic = list(), display = list(), input = list(),
-                                      other = list(), timer = list(), statistics = list()) {
+ls_save_question <- function(
+  sid,
+  gid = NULL,
+  qid = NULL,
+  code,
+  type = "T",
+  text,
+  question_theme_name = NULL,
+  help = NULL,
+  language = "en",
+  answers = NULL,
+  general_settings = list(),
+  logic = list(),
+  display = list(),
+  input = list(),
+  other = list(),
+  timer = list(),
+  statistics = list()
+) {
   if (!is.null(attr(sid, "gid"))) {
     gid <- attr(sid, "gid")
     sid <- attr(sid, "sid")
@@ -142,15 +155,25 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
   if (!is.null(qid)) {
     qid <- ls_validate_id(qid, "qid")
   }
-  if (!is.character(code) || length(code) != 1 || is.na(code) || !nzchar(code)) {
+  if (
+    !is.character(code) || length(code) != 1 || is.na(code) || !nzchar(code)
+  ) {
     stop("'code' must be a single non-empty character string.", call. = FALSE)
   }
-  if (!is.character(text) || length(text) != 1 || is.na(text) || !nzchar(text)) {
+  if (
+    !is.character(text) || length(text) != 1 || is.na(text) || !nzchar(text)
+  ) {
     stop("'text' must be a single non-empty character string.", call. = FALSE)
   }
-  if (!is.character(type) || length(type) != 1 || is.na(type) || !type %in% names(ls_question_types)) {
+  if (
+    !is.character(type) ||
+      length(type) != 1 ||
+      is.na(type) ||
+      !type %in% names(ls_question_types)
+  ) {
     stop(
-      "'type' must be one of: ", paste(names(ls_question_types), collapse = ", "),
+      "'type' must be one of: ",
+      paste(names(ls_question_types), collapse = ", "),
       call. = FALSE
     )
   }
@@ -159,8 +182,13 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
   }
 
   advanced_settings <- list(
-    general_settings = general_settings, logic = logic, display = display,
-    input = input, other = other, timer = timer, statistics = statistics
+    general_settings = general_settings,
+    logic = logic,
+    display = display,
+    input = input,
+    other = other,
+    timer = timer,
+    statistics = statistics
   )
   for (arg_name in names(advanced_settings)) {
     if (!is.list(advanced_settings[[arg_name]])) {
@@ -172,22 +200,48 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
     list(mandatory = "N", relevance = "1", encrypted = "N"),
     general_settings
   )
-  if (!is.null(general_settings$mandatory) && !general_settings$mandatory %in% c("Y", "S", "N")) {
-    stop("general_settings$mandatory must be one of \"Y\", \"S\", or \"N\".", call. = FALSE)
+  if (
+    !is.null(general_settings$mandatory) &&
+      !general_settings$mandatory %in% c("Y", "S", "N")
+  ) {
+    stop(
+      "general_settings$mandatory must be one of \"Y\", \"S\", or \"N\".",
+      call. = FALSE
+    )
   }
-  if (!is.null(general_settings$encrypted) && !general_settings$encrypted %in% c("Y", "N")) {
-    stop("general_settings$encrypted must be one of \"Y\" or \"N\".", call. = FALSE)
+  if (
+    !is.null(general_settings$encrypted) &&
+      !general_settings$encrypted %in% c("Y", "N")
+  ) {
+    stop(
+      "general_settings$encrypted must be one of \"Y\" or \"N\".",
+      call. = FALSE
+    )
   }
-  if (!is.null(general_settings$relevance) &&
-        (length(general_settings$relevance) != 1 || is.na(general_settings$relevance) ||
-           !nzchar(trimws(as.character(general_settings$relevance))))) {
-    stop("general_settings$relevance must be a single non-empty relevance equation.", call. = FALSE)
+  if (
+    !is.null(general_settings$relevance) &&
+      (length(general_settings$relevance) != 1 ||
+        is.na(general_settings$relevance) ||
+        !nzchar(trimws(as.character(general_settings$relevance))))
+  ) {
+    stop(
+      "general_settings$relevance must be a single non-empty relevance equation.",
+      call. = FALSE
+    )
   }
 
   answer_codes <- NULL
   if (!is.null(answers)) {
-    if (!is.character(answers) || length(answers) == 0 || anyNA(answers) || any(!nzchar(answers))) {
-      stop("'answers' must be a non-empty character vector of answer option texts.", call. = FALSE)
+    if (
+      !is.character(answers) ||
+        length(answers) == 0 ||
+        anyNA(answers) ||
+        any(!nzchar(answers))
+    ) {
+      stop(
+        "'answers' must be a non-empty character vector of answer option texts.",
+        call. = FALSE
+      )
     }
     answer_codes <- names(answers)
     if (is.null(answer_codes)) {
@@ -196,7 +250,10 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
     missing_code <- !nzchar(answer_codes)
     answer_codes[missing_code] <- sprintf("A%d", which(missing_code))
     if (any(!grepl("^[a-zA-Z0-9]{1,5}$", answer_codes))) {
-      stop("'answers' codes must be alphanumeric and at most 5 characters.", call. = FALSE)
+      stop(
+        "'answers' codes must be alphanumeric and at most 5 characters.",
+        call. = FALSE
+      )
     }
     if (anyDuplicated(answer_codes) != 0) {
       stop("'answers' codes must be unique.", call. = FALSE)
@@ -204,9 +261,18 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
   }
 
   csrf_path <- if (is.null(qid)) {
-    sprintf("/index.php/questionAdministration/create?surveyid=%d&gid=%d", sid, gid)
+    sprintf(
+      "/index.php/questionAdministration/create?surveyid=%d&gid=%d",
+      sid,
+      gid
+    )
   } else {
-    sprintf("/index.php/questionAdministration/view?surveyid=%d&gid=%d&qid=%d", sid, gid, qid)
+    sprintf(
+      "/index.php/questionAdministration/view?surveyid=%d&gid=%d&qid=%d",
+      sid,
+      gid,
+      qid
+    )
   }
   csrf <- ls_csrf_fetch(csrf_path)
 
@@ -223,13 +289,27 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
     bFullPOST = 1
   )
   fields[[sprintf("questionI10N[%s][question]", language)]] <- text
-  fields[[sprintf("questionI10N[%s][help]", language)]] <- if (is.null(help)) "" else help
+  fields[[sprintf("questionI10N[%s][help]", language)]] <- if (is.null(help)) {
+    ""
+  } else {
+    help
+  }
 
   fields <- c(fields, ls_flatten_fields("question", general_settings))
-  for (category in c("logic", "display", "input", "other", "timer", "statistics")) {
+  for (category in c(
+    "logic",
+    "display",
+    "input",
+    "other",
+    "timer",
+    "statistics"
+  )) {
     settings <- advanced_settings[[category]]
     if (length(settings) > 0) {
-      fields <- c(fields, ls_flatten_fields(sprintf("advancedSettings[%s]", category), settings))
+      fields <- c(
+        fields,
+        ls_flatten_fields(sprintf("advancedSettings[%s]", category), settings)
+      )
     }
   }
 
@@ -237,20 +317,32 @@ ls_save_question <- function(sid, gid = NULL, qid = NULL, code, type = "T", text
     keys <- paste0("a", seq_along(answers))
     fields[["answeroptions_sortorder"]] <- paste(keys, collapse = ",")
     for (i in seq_along(answers)) {
-      fields[[sprintf("answeroptions[%s][0][code]", keys[i])]] <- answer_codes[i]
-      fields[[sprintf("answeroptions[%s][0][answeroptionl10n][%s]", keys[i], language)]] <- answers[[i]]
+      fields[[sprintf("answeroptions[%s][0][code]", keys[i])]] <- answer_codes[
+        i
+      ]
+      fields[[sprintf(
+        "answeroptions[%s][0][answeroptionl10n][%s]",
+        keys[i],
+        language
+      )]] <- answers[[i]]
     }
   }
 
   req <- req_body_form(
-    ls_request("/index.php/questionAdministration/saveQuestionData", csrf_cookie = csrf$cookie),
+    ls_request(
+      "/index.php/questionAdministration/saveQuestionData",
+      csrf_cookie = csrf$cookie
+    ),
     !!!fields
   )
   resp <- req_perform(req)
 
   new_qid <- regmatches_first(resp_url(resp), "questionId=([0-9]+)")
   if (is.na(new_qid)) {
-    stop("Could not determine the question id from the response.", call. = FALSE)
+    stop(
+      "Could not determine the question id from the response.",
+      call. = FALSE
+    )
   }
   invisible(structure(as.integer(new_qid), sid = sid, gid = gid))
 }

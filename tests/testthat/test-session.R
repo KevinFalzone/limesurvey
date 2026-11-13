@@ -18,8 +18,14 @@ test_that("ls_set_session rejects invalid url", {
 })
 
 test_that("ls_set_session rejects invalid token", {
-  expect_error(ls_set_session(url = "https://example.com/", token = ""), "token")
-  expect_error(ls_set_session(url = "https://example.com/", token = NA), "token")
+  expect_error(
+    ls_set_session(url = "https://example.com/", token = ""),
+    "token"
+  )
+  expect_error(
+    ls_set_session(url = "https://example.com/", token = NA),
+    "token"
+  )
   expect_error(ls_set_session(url = "https://example.com/", token = 1), "token")
 })
 

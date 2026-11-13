@@ -37,19 +37,30 @@ ls_get_questions <- function(sid) {
   sid <- ls_validate_id(sid, "sid")
 
   req <- ls_request(
-    sprintf("/index.php/admin/export/sa/survey/action/exportstructuretsv/surveyid/%d", sid),
-    ajax = FALSE, csrf_cookie = "YII_CSRF_TOKEN"
+    sprintf(
+      "/index.php/admin/export/sa/survey/action/exportstructuretsv/surveyid/%d",
+      sid
+    ),
+    ajax = FALSE,
+    csrf_cookie = "YII_CSRF_TOKEN"
   )
   resp <- req_perform(req)
 
   content_type <- resp_header(resp, "content-type")
   if (!grepl("text/tab-separated-values", content_type, fixed = TRUE)) {
-    stop(sprintf("Request failed. Not a tsv file (%s).", content_type), call. = FALSE)
+    stop(
+      sprintf("Request failed. Not a tsv file (%s).", content_type),
+      call. = FALSE
+    )
   }
 
   structure_tsv <- read_tsv(resp_body_string(resp), show_col_types = FALSE) |>
     filter(!is.na(id), class != "A")
-  structure_tsv$group_id <- ls_fill_down(ifelse(structure_tsv$class == "G", structure_tsv$id, ""))
+  structure_tsv$group_id <- ls_fill_down(ifelse(
+    structure_tsv$class == "G",
+    structure_tsv$id,
+    ""
+  ))
 
   structure_tsv |>
     filter(class != "G") |>
@@ -89,49 +100,102 @@ ls_get_questions <- function(sid) {
 #' @importFrom readr read_csv
 #'
 #' @export
-ls_get_data <- function(sid, export_from, export_to, completionstate, headstyle,
-                         columns = NULL, language = "en") {
+ls_get_data <- function(
+  sid,
+  export_from,
+  export_to,
+  completionstate,
+  headstyle,
+  columns = NULL,
+  language = "en"
+) {
   sid <- ls_validate_id(sid, "sid")
 
-  if (!is.numeric(export_from) || length(export_from) != 1 || is.na(export_from) ||
-        export_from %% 1 != 0 || export_from <= 0) {
+  if (
+    !is.numeric(export_from) ||
+      length(export_from) != 1 ||
+      is.na(export_from) ||
+      export_from %% 1 != 0 ||
+      export_from <= 0
+  ) {
     stop("'export_from' must be a single positive integer.", call. = FALSE)
   }
-  if (!is.numeric(export_to) || length(export_to) != 1 || is.na(export_to) ||
-        export_to %% 1 != 0 || export_to <= 0) {
+  if (
+    !is.numeric(export_to) ||
+      length(export_to) != 1 ||
+      is.na(export_to) ||
+      export_to %% 1 != 0 ||
+      export_to <= 0
+  ) {
     stop("'export_to' must be a single positive integer.", call. = FALSE)
   }
   if (export_from > export_to) {
-    stop("'export_from' must be less than or equal to 'export_to'.", call. = FALSE)
+    stop(
+      "'export_from' must be less than or equal to 'export_to'.",
+      call. = FALSE
+    )
   }
-  if (!is.character(completionstate) || length(completionstate) != 1 ||
-        !completionstate %in% c("all", "complete", "incomplete")) {
-    stop("'completionstate' must be one of \"all\", \"complete\", or \"incomplete\".", call. = FALSE)
+  if (
+    !is.character(completionstate) ||
+      length(completionstate) != 1 ||
+      !completionstate %in% c("all", "complete", "incomplete")
+  ) {
+    stop(
+      "'completionstate' must be one of \"all\", \"complete\", or \"incomplete\".",
+      call. = FALSE
+    )
   }
-  if (!is.character(headstyle) || length(headstyle) != 1 ||
-        !headstyle %in% c("code", "abbreviated", "full", "codetext")) {
-    stop("'headstyle' must be one of \"code\", \"abbreviated\", \"full\", or \"codetext\".", call. = FALSE)
+  if (
+    !is.character(headstyle) ||
+      length(headstyle) != 1 ||
+      !headstyle %in% c("code", "abbreviated", "full", "codetext")
+  ) {
+    stop(
+      "'headstyle' must be one of \"code\", \"abbreviated\", \"full\", or \"codetext\".",
+      call. = FALSE
+    )
   }
-  if (!is.character(language) || length(language) != 1 || is.na(language) || !nzchar(language)) {
-    stop("'language' must be a single non-empty character string.", call. = FALSE)
+  if (
+    !is.character(language) ||
+      length(language) != 1 ||
+      is.na(language) ||
+      !nzchar(language)
+  ) {
+    stop(
+      "'language' must be a single non-empty character string.",
+      call. = FALSE
+    )
   }
   if (!is.null(columns)) {
     if (!is.character(columns) || length(columns) == 0) {
-      stop("'columns' must be a non-empty character vector of column identifiers, or NULL.", call. = FALSE)
+      stop(
+        "'columns' must be a non-empty character vector of column identifiers, or NULL.",
+        call. = FALSE
+      )
     }
     if (any(!grepl("^\\d+X\\d+X[[:alnum:]]+$", columns))) {
-      stop(paste0(
-        "All elements in 'columns' must be in the format \"SIDXGIDXQID\", ",
-        "where SID is the survey id, GID is the group id, and QID is the question id."
-      ), call. = FALSE)
+      stop(
+        paste0(
+          "All elements in 'columns' must be in the format \"SIDXGIDXQID\", ",
+          "where SID is the survey id, GID is the group id, and QID is the question id."
+        ),
+        call. = FALSE
+      )
     }
   } else {
     columns <- ls_get_questions(sid) |> pull(path)
   }
 
   default_columns <- c(
-    "id", "submitdate", "lastpage", "startlanguage", "seed",
-    "startdate", "datestamp", "ipaddr", "refurl"
+    "id",
+    "submitdate",
+    "lastpage",
+    "startlanguage",
+    "seed",
+    "startdate",
+    "datestamp",
+    "ipaddr",
+    "refurl"
   )
   names(default_columns) <- rep("colselect[]", length(default_columns))
   names(columns) <- rep("colselect[]", length(columns))
@@ -165,7 +229,8 @@ ls_get_data <- function(sid, export_from, export_to, completionstate, headstyle,
   req <- req_body_form(
     ls_request(
       sprintf("/index.php/admin/export/sa/exportresults/surveyid/%d", sid),
-      ajax = FALSE, csrf_cookie = "YII_CSRF_TOKEN"
+      ajax = FALSE,
+      csrf_cookie = "YII_CSRF_TOKEN"
     ),
     !!!fields
   )
@@ -173,7 +238,10 @@ ls_get_data <- function(sid, export_from, export_to, completionstate, headstyle,
 
   content_type <- resp_header(resp, "content-type")
   if (!grepl("text/comma-separated-values", content_type, fixed = TRUE)) {
-    stop(sprintf("Request failed. Not a csv file (%s).", content_type), call. = FALSE)
+    stop(
+      sprintf("Request failed. Not a csv file (%s).", content_type),
+      call. = FALSE
+    )
   }
 
   read_csv(resp_body_string(resp), show_col_types = FALSE)
