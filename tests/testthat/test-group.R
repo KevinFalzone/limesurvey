@@ -16,5 +16,8 @@ test_that("ls_save_group validates 'gid'", {
 test_that("ls_save_group validates 'condition'", {
   expect_error(ls_save_group(1, name = "Group", condition = ""), "condition")
   expect_error(ls_save_group(1, name = "Group", condition = NA), "condition")
-  expect_error(ls_save_group(1, name = "Group", condition = c("1", "2")), "condition")
+  expect_error(
+    ls_save_group(1, name = "Group", condition = c("1", "2")),
+    "condition"
+  )
 })

@@ -16,7 +16,9 @@ ls_set_session <- function(url, token) {
     stop("'url' must be a single non-empty character string.", call. = FALSE)
   }
 
-  if (!is.character(token) || length(token) != 1 || is.na(token) || !nzchar(token)) {
+  if (
+    !is.character(token) || length(token) != 1 || is.na(token) || !nzchar(token)
+  ) {
     stop("'token' must be a single non-empty character string.", call. = FALSE)
   }
 
@@ -41,7 +43,11 @@ ls_resolve_session <- function(overrides) {
   session <- ls_get_session()
   unknown <- setdiff(names(overrides), names(session))
   if (length(unknown) > 0) {
-    stop("Unknown parameter(s): ", paste(unknown, collapse = ", "), call. = FALSE)
+    stop(
+      "Unknown parameter(s): ",
+      paste(unknown, collapse = ", "),
+      call. = FALSE
+    )
   }
   modifyList(session, overrides)
 }

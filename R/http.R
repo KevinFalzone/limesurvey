@@ -19,9 +19,15 @@ ls_request <- function(path, ajax = TRUE, csrf_cookie = NULL) {
 
 #' @importFrom rvest html_element html_attr
 ls_csrf_token <- function(html) {
-  token <- html_attr(html_element(html, "input[name=\"YII_CSRF_TOKEN\"]"), "value")
+  token <- html_attr(
+    html_element(html, "input[name=\"YII_CSRF_TOKEN\"]"),
+    "value"
+  )
   if (is.na(token) || !nzchar(token)) {
-    stop("Could not find the CSRF token (page layout may have changed).", call. = FALSE)
+    stop(
+      "Could not find the CSRF token (page layout may have changed).",
+      call. = FALSE
+    )
   }
   token
 }
