@@ -4,7 +4,12 @@
 \alias{ls_create_survey}
 \title{Create a New LimeSurvey Survey}
 \usage{
-ls_create_survey(title, language = "en", format = "G")
+ls_create_survey(
+  title,
+  language = "en",
+  format = "G",
+  remove_default_group = TRUE
+)
 }
 \arguments{
 \item{title}{A character string: the survey's title.}
@@ -14,6 +19,10 @@ ls_create_survey(title, language = "en", format = "G")
 
 \item{format}{A character string: one of \code{"G"} (group by group), \code{"S"}
 (question by question), or \code{"A"} (all in one page). Default \code{"G"}.}
+
+\item{remove_default_group}{A logical: whether to delete the "My first
+question group" question group LimeSurvey seeds every new survey
+with. Default \code{TRUE}.}
 }
 \value{
 Invisibly, the integer survey id (\code{sid}) of the newly created
