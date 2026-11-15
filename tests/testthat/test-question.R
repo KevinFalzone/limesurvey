@@ -121,3 +121,63 @@ test_that("ls_save_question validates 'answers' codes", {
     "unique"
   )
 })
+
+mock_question_save <- function(captured_fields_env, question_id = 42) {
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured_fields_env$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response",
+    resp_url = function(...) {
+      sprintf("https://example.org/?questionId=%d", question_id)
+    },
+    .env = parent.frame()
+  )
+}
+
+test_that("ls_save_question posts type 'M' answers as subquestions", {
+  captured <- new.env()
+  mock_question_save(captured)
+
+  ls_save_question(
+    1,
+    1,
+    code = "Q1",
+    type = "M",
+    text = "Text",
+    answers = c(red = "Rouge", green = "Vert")
+  )
+
+  field_names <- names(captured$fields)
+  expect_true(any(grepl("^subquestions\\[", field_names)))
+  expect_false(any(grepl("^answeroptions\\[", field_names)))
+  expect_true(any(
+    vapply(
+      captured$fields[grepl("\\[code\\]$", field_names)],
+      identical,
+      logical(1),
+      "red"
+    )
+  ))
+})
+
+test_that("ls_save_question still posts type 'L' answers as answeroptions", {
+  captured <- new.env()
+  mock_question_save(captured)
+
+  ls_save_question(
+    1,
+    1,
+    code = "Q1",
+    type = "L",
+    text = "Text",
+    answers = c(red = "Rouge", green = "Vert")
+  )
+
+  field_names <- names(captured$fields)
+  expect_true(any(grepl("^answeroptions\\[", field_names)))
+  expect_false(any(grepl("^subquestions\\[", field_names)))
+})
