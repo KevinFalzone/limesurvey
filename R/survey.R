@@ -55,7 +55,7 @@ ls_create_survey <- function(
   }
 
   sid <- ls_new_survey()
-  ls_update_general_settings(sid, language = language, format = format)
+  ls_update_survey_settings_general(sid, language = language, format = format)
   ls_update_title(sid, title = title, language = language)
 
   if (isTRUE(remove_default_group)) {
@@ -82,33 +82,121 @@ ls_new_survey <- function() {
   as.integer(sid)
 }
 
+#' Update a Survey's General Settings
+#'
+#' Updates a survey's base language, additional languages, and
+#' question/group format, by replaying the admin web UI's "General
+#' settings" panel. Can be used right after [ls_create_survey()] or on an
+#' already-created survey.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param language A character string: the survey's base language code.
+#' @param format A character string: one of `"G"` (group by group), `"S"`
+#'   (question by question), or `"A"` (all in one page). Default `"G"`.
+#' @param additional_languages A character vector of additional language
+#'   codes the survey should also be translatable into (e.g. `c("en")`).
+#'   Default `NULL` (no additional languages).
+#' @param old_additional_languages A character vector of the survey's
+#'   *current* additional language codes, if any. LimeSurvey uses this to
+#'   detect which languages were removed, so it can clean up their
+#'   question texts; pass the survey's existing additional languages here
+#'   when it already has some, so none are unintentionally dropped.
+#'   Default `NULL` (assumes none yet, e.g. right after
+#'   [ls_create_survey()]).
+#'
+#' @return Invisibly, `sid`.
+#'
 #' @importFrom httr2 req_body_form req_perform
-ls_update_general_settings <- function(sid, language, format) {
+#'
+#' @export
+ls_update_survey_settings_general <- function(
+  sid,
+  language,
+  format = "G",
+  additional_languages = NULL,
+  old_additional_languages = NULL
+) {
+  sid <- ls_validate_id(sid, "sid")
+  if (
+    !is.character(language) ||
+      length(language) != 1 ||
+      is.na(language) ||
+      !nzchar(language)
+  ) {
+    stop(
+      "'language' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(format) ||
+      length(format) != 1 ||
+      !format %in% c("G", "S", "A")
+  ) {
+    stop("'format' must be one of \"G\", \"S\", or \"A\".", call. = FALSE)
+  }
+  if (
+    !is.null(additional_languages) &&
+      (!is.character(additional_languages) || anyNA(additional_languages))
+  ) {
+    stop(
+      "'additional_languages' must be NULL or a character vector.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.null(old_additional_languages) &&
+      (!is.character(old_additional_languages) ||
+        anyNA(old_additional_languages))
+  ) {
+    stop(
+      "'old_additional_languages' must be NULL or a character vector.",
+      call. = FALSE
+    )
+  }
+
   csrf <- ls_csrf_fetch(sprintf(
     "/index.php/surveyAdministration/rendersidemenulink?subaction=generalsettings&surveyid=%d",
     sid
   ))
 
-  req <- req_body_form(
-    ls_request(
-      "/index.php/admin/database/index/updatesurveylocalesettings_generalsettings",
-      csrf_cookie = csrf$cookie
-    ),
+  fields <- list(
     YII_CSRF_TOKEN = csrf$token,
+    oldlanguages = paste(old_additional_languages, collapse = " "),
     language = language,
-    owner_id = -1,
     admin = "",
+    adminbutton = "N",
     adminemail = "",
+    adminemailbutton = "N",
     bounce_email = "",
-    format = format,
+    bounce_emailbutton = "N",
     gsid = 1,
+    format = format,
     template = "inherit",
     action = "updatesurveylocalesettings_generalsettings",
     sid = sid,
     surveyid = sid,
     responsejson = 1
   )
-  invisible(req_perform(req))
+  if (!is.null(additional_languages)) {
+    additional_language_fields <- as.list(additional_languages)
+    names(additional_language_fields) <- rep(
+      "additional_languages[]",
+      length(additional_languages)
+    )
+    fields <- c(fields, additional_language_fields)
+  }
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings_generalsettings",
+      csrf_cookie = csrf$cookie
+    ),
+    !!!fields
+  )
+  req_perform(req)
+
+  invisible(sid)
 }
 
 #' @importFrom httr2 req_body_form req_perform
