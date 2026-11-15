@@ -110,3 +110,44 @@ ls_save_group <- function(
   }
   invisible(structure(as.integer(new_gid), sid = sid))
 }
+
+#' Delete a LimeSurvey Question Group
+#'
+#' Permanently deletes a question group from a survey, by replaying the
+#' admin web UI's "Delete" action. This also deletes any questions (and
+#' their answers/subquestions) inside the group.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param gid An integer (or integer-coercible) question group id.
+#'
+#' @return Invisibly, the integer question group id (`gid`) that was
+#'   deleted.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_delete_group <- function(sid, gid) {
+  sid <- ls_validate_id(sid, "sid")
+  gid <- ls_validate_id(gid, "gid")
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/questionGroupsAdministration/edit/surveyid/%d/gid/%d",
+    sid,
+    gid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/questionGroupsAdministration/delete",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    asJson = 1,
+    surveyid = sid,
+    gid = gid,
+    landOnSideMenuTab = "structure"
+  )
+  req_perform(req)
+
+  invisible(gid)
+}
