@@ -732,6 +732,176 @@ ls_update_survey_settings_participants <- function(
   invisible(sid)
 }
 
+#' Update a Survey's Notification and Data Management Settings
+#'
+#' Updates a survey's notification and data management options (date
+#' stamping, IP address logging/anonymization, referrer URL, response
+#' timings, quota-exit saving, assessments, partial-response saving,
+#' notification/response email recipients, Google Analytics), by
+#' replaying the admin web UI's "Notification & data management" panel.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param date_stamp A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param ip_addr A character string: one of `"I"` (inherit the global
+#'   setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param ip_anonymize A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param ref_url A character string: one of `"I"` (inherit the global
+#'   setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param save_timings A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param save_quota_exit A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param assessments A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param allow_save A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param email_notification_to A character string: the email
+#'   address(es) to notify on each response, or `"inherit"` to use the
+#'   global default. Default `"inherit"`.
+#' @param email_notification_to_custom A character string: `"Y"` to use
+#'   `email_notification_to`, or `"N"` to use the global default.
+#'   Default `"N"`.
+#' @param email_response_to A character string: the email address(es) to
+#'   send full response data to, or `"inherit"` to use the global
+#'   default. Default `"inherit"`.
+#' @param email_response_to_custom A character string: `"Y"` to use
+#'   `email_response_to`, or `"N"` to use the global default. Default
+#'   `"N"`.
+#' @param google_analytics_api_key A character string: one of `"I"`
+#'   (inherit the global setting), `"Y"` (use a survey-specific key), or
+#'   `"N"` (don't use Google Analytics). Default `"N"`.
+#' @param google_analytics_style A character string controlling the
+#'   Google Analytics tracking style; inspect the admin UI's
+#'   "Notification & data management" panel for the current set of
+#'   options. Default `"0"`.
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_notification <- function(
+  sid,
+  date_stamp = "I",
+  ip_addr = "I",
+  ip_anonymize = "I",
+  ref_url = "I",
+  save_timings = "I",
+  save_quota_exit = "I",
+  assessments = "I",
+  allow_save = "I",
+  email_notification_to = "inherit",
+  email_notification_to_custom = "N",
+  email_response_to = "inherit",
+  email_response_to_custom = "N",
+  google_analytics_api_key = "N",
+  google_analytics_style = "0"
+) {
+  sid <- ls_validate_id(sid, "sid")
+
+  iyn_args <- list(
+    date_stamp = date_stamp,
+    ip_addr = ip_addr,
+    ip_anonymize = ip_anonymize,
+    ref_url = ref_url,
+    save_timings = save_timings,
+    save_quota_exit = save_quota_exit,
+    assessments = assessments,
+    allow_save = allow_save,
+    google_analytics_api_key = google_analytics_api_key
+  )
+  for (arg_name in names(iyn_args)) {
+    value <- iyn_args[[arg_name]]
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% c("I", "Y", "N")
+    ) {
+      stop(
+        sprintf("'%s' must be one of \"I\", \"Y\", or \"N\".", arg_name),
+        call. = FALSE
+      )
+    }
+  }
+  yn_args <- list(
+    email_notification_to_custom = email_notification_to_custom,
+    email_response_to_custom = email_response_to_custom
+  )
+  for (arg_name in names(yn_args)) {
+    value <- yn_args[[arg_name]]
+    if (!is.character(value) || length(value) != 1 || !value %in% c("Y", "N")) {
+      stop(sprintf("'%s' must be \"Y\" or \"N\".", arg_name), call. = FALSE)
+    }
+  }
+  if (
+    !is.character(email_notification_to) ||
+      length(email_notification_to) != 1 ||
+      is.na(email_notification_to) ||
+      !nzchar(email_notification_to)
+  ) {
+    stop(
+      "'email_notification_to' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(email_response_to) ||
+      length(email_response_to) != 1 ||
+      is.na(email_response_to) ||
+      !nzchar(email_response_to)
+  ) {
+    stop(
+      "'email_response_to' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(google_analytics_style) ||
+      length(google_analytics_style) != 1 ||
+      is.na(google_analytics_style) ||
+      !nzchar(google_analytics_style)
+  ) {
+    stop(
+      "'google_analytics_style' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=notification&surveyid=%d",
+    sid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    datestamp = date_stamp,
+    ipaddr = ip_addr,
+    ipanonymize = ip_anonymize,
+    refurl = ref_url,
+    savetimings = save_timings,
+    savequotaexit = save_quota_exit,
+    assessments = assessments,
+    allowsave = allow_save,
+    emailnotificationto = email_notification_to,
+    emailnotificationtobutton = email_notification_to_custom,
+    emailresponseto = email_response_to,
+    emailresponsetobutton = email_response_to_custom,
+    googleanalyticsapikeysetting = google_analytics_api_key,
+    googleanalyticsstyle = google_analytics_style,
+    action = "updatesurveylocalesettings",
+    sid = sid,
+    surveyid = sid,
+    responsejson = 1
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
