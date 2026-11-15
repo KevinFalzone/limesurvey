@@ -3,7 +3,9 @@ Title: Client for LimeSurvey
 Version: 0.0.0.9000
 Authors@R:
     person("Kevin", "Falzone", , "kevin.falzone@univ-lorraine.fr", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: Create and configure surveys, groups, and questions, and
+    export collected responses, on a self-hosted 'LimeSurvey' instance,
+    by replaying the same actions as its administration web interface.
 License: MIT + file LICENSE
 Depends:
     R (>= 4.1)
