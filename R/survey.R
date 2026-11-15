@@ -609,6 +609,129 @@ ls_update_survey_settings_presentation <- function(
   invisible(sid)
 }
 
+#' Update a Survey's Participants (Tokens) Settings
+#'
+#' Updates a survey's participant table options - anonymization, answer
+#' persistence across tokens, self-registration, confirmation emails,
+#' etc. - by replaying the admin web UI's "Survey participants" panel.
+#' Note that `show_token_policy` and `show_register_policy` update the
+#' same underlying survey columns as [ls_update_survey_settings_data_security()]; both
+#' panels expose them.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param anonymized A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_token_policy A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param token_answers_persistence A character string: one of `"I"`
+#'   (inherit the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param allow_edit_after_completion A character string: one of `"I"`
+#'   (inherit the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param allow_register A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_register_policy A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param html_email A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param send_confirmation A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param token_length A character string: the generated token length,
+#'   only applied when `token_length_custom = "Y"`. Default `"-1"`.
+#' @param token_length_custom A character string: `"Y"` to use
+#'   `token_length`, or `"N"` to use the global default length. Default
+#'   `"N"`.
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_participants <- function(
+  sid,
+  anonymized = "I",
+  show_token_policy = "I",
+  token_answers_persistence = "I",
+  allow_edit_after_completion = "I",
+  token_length = "-1",
+  token_length_custom = "N",
+  allow_register = "I",
+  show_register_policy = "I",
+  html_email = "I",
+  send_confirmation = "I"
+) {
+  sid <- ls_validate_id(sid, "sid")
+
+  iyn_args <- list(
+    anonymized = anonymized,
+    show_token_policy = show_token_policy,
+    token_answers_persistence = token_answers_persistence,
+    allow_edit_after_completion = allow_edit_after_completion,
+    allow_register = allow_register,
+    show_register_policy = show_register_policy,
+    html_email = html_email,
+    send_confirmation = send_confirmation
+  )
+  for (arg_name in names(iyn_args)) {
+    value <- iyn_args[[arg_name]]
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% c("I", "Y", "N")
+    ) {
+      stop(
+        sprintf("'%s' must be one of \"I\", \"Y\", or \"N\".", arg_name),
+        call. = FALSE
+      )
+    }
+  }
+  if (
+    !is.character(token_length_custom) ||
+      length(token_length_custom) != 1 ||
+      !token_length_custom %in% c("Y", "N")
+  ) {
+    stop("'token_length_custom' must be \"Y\" or \"N\".", call. = FALSE)
+  }
+  if (
+    !is.character(token_length) ||
+      length(token_length) != 1 ||
+      is.na(token_length) ||
+      !nzchar(token_length)
+  ) {
+    stop(
+      "'token_length' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=tokens&surveyid=%d",
+    sid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    anonymized = anonymized,
+    showtokenpolicy = show_token_policy,
+    tokenanswerspersistence = token_answers_persistence,
+    alloweditaftercompletion = allow_edit_after_completion,
+    tokenlength = token_length,
+    tokenlengthbutton = token_length_custom,
+    allowregister = allow_register,
+    showregisterpolicy = show_register_policy,
+    htmlemail = html_email,
+    sendconfirmation = send_confirmation,
+    action = "updatesurveylocalesettings",
+    sid = sid,
+    surveyid = sid,
+    responsejson = 1
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
