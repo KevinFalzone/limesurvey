@@ -1,56 +1,82 @@
-
+---
+format: gfm
+---
 
 <!-- README.md is generated from README.qmd. Please edit that file -->
+
+
 
 # limesurvey
 
 <!-- badges: start -->
-
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![CRAN
-status](https://www.r-pkg.org/badges/version/limesurvey.png)](https://CRAN.R-project.org/package=limesurvey)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/limesurvey)](https://CRAN.R-project.org/package=limesurvey)
 <!-- badges: end -->
 
-The goal of limesurvey is to …
+limesurvey is an R client for a self-hosted LimeSurvey instance. It lets
+you create and configure surveys - groups, questions, answer options, and
+survey settings - and export collected responses, by replaying the same
+actions as LimeSurvey's own admin web interface.
+
+## Disclaimer
+
+This package is **experimental**. It is not officially affiliated with or
+endorsed by LimeSurvey.
+
+It works by replaying actions against LimeSurvey's admin web interface
+rather than a stable, versioned API, so it can break when LimeSurvey's own
+interface changes between versions.
+
+Applied on LimeSurvey Community Edition version 7.9.1+261102.
+
+The author of this package cannot be held responsible for any data loss.
+**Back up your data before using this package**, and test it against a
+non-production LimeSurvey instance before using it on one that matters.
 
 ## Installation
 
 You can install the development version of limesurvey like so:
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+# install.packages("pak")
+pak::pak("KevinFalzone/limesurvey")
 ```
 
-## Example
+## Usage
 
-This is a basic example which shows you how to solve a common problem:
+Create a session, build a two-question survey, and export the collected
+responses:
+
 
 ``` r
 library(limesurvey)
-## basic example code
+
+ls_set_session(
+  url = "https://your-limesurvey-instance.example.com",
+  token = "your-session-token"
+)
+
+sid <- ls_create_survey(title = "Customer Satisfaction Survey")
+
+result <- sid |>
+  ls_save_group(name = "General") |>
+  ls_save_question(
+    code = "Q1",
+    type = "L",
+    text = "How satisfied are you with our service?",
+    answers = c("Very satisfied", "Satisfied", "Not satisfied")
+  ) |>
+  ls_save_question(
+    code = "Q2",
+    type = "T",
+    text = "Any additional comments?"
+  )
+
+data <- ls_get_data(
+  sid,
+  export_from = 1,
+  export_to = 100,
+  completionstate = "all",
+  headstyle = "code"
+)
 ```
-
-What is special about using `README.qmd` instead of just `README.md`?
-You can include R chunks like so:
-
-``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
-```
-
-You’ll still need to render `README.qmd` regularly, to keep `README.md`
-up-to-date. `quarto render README.qmd` is handy for this.
-
-You can also embed plots, for example:
-
-<img src="man/figures/README-pressure-1.png" style="width:100.0%" />
-
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
