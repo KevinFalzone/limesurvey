@@ -21,7 +21,8 @@ ls_save_question(
   input = list(),
   other = list(),
   timer = list(),
-  statistics = list()
+  statistics = list(),
+  display_theme_options = list()
 )
 }
 \arguments{
@@ -109,6 +110,12 @@ editor in the admin UI to see which ones apply. Nest a list to
 target a localized sub-field, e.g.
 \code{logic = list(em_validation_q_tip = list(en = "Hint"))}. Values are
 passed through as-is.}
+
+\item{display_theme_options}{A named list mirroring the admin UI's
+"Display theme options" accordion panel (e.g. \code{show_search},
+\code{show_tick}, \code{width_entry} for the \code{"bootstrap_dropdown"} theme).
+Distinct from \code{display}, which is LimeSurvey's own separate "Display"
+panel.}
 }
 \value{
 Invisibly, the integer question id (\code{qid}), carrying \code{sid}

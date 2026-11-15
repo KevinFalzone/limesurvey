@@ -130,6 +130,11 @@ ls_subquestion_types <- c("M")
 #'   target a localized sub-field, e.g.
 #'   `logic = list(em_validation_q_tip = list(en = "Hint"))`. Values are
 #'   passed through as-is.
+#' @param display_theme_options A named list mirroring the admin UI's
+#'   "Display theme options" accordion panel (e.g. `show_search`,
+#'   `show_tick`, `width_entry` for the `"bootstrap_dropdown"` theme).
+#'   Distinct from `display`, which is LimeSurvey's own separate "Display"
+#'   panel.
 #'
 #' @return Invisibly, the integer question id (`qid`), carrying `sid`
 #'   and `gid` as attributes so it can be piped straight into another
@@ -159,7 +164,8 @@ ls_save_question <- function(
   input = list(),
   other = list(),
   timer = list(),
-  statistics = list()
+  statistics = list(),
+  display_theme_options = list()
 ) {
   if (!is.null(attr(sid, "gid"))) {
     gid <- attr(sid, "gid")
@@ -206,7 +212,8 @@ ls_save_question <- function(
     input = input,
     other = other,
     timer = timer,
-    statistics = statistics
+    statistics = statistics,
+    display_theme_options = display_theme_options
   )
   for (arg_name in names(advanced_settings)) {
     if (!is.list(advanced_settings[[arg_name]])) {
@@ -314,19 +321,28 @@ ls_save_question <- function(
   }
 
   fields <- c(fields, ls_flatten_fields("question", general_settings))
-  for (category in c(
-    "logic",
-    "display",
-    "input",
-    "other",
-    "timer",
-    "statistics"
-  )) {
+  # Maps each advanced_settings arg name to LimeSurvey's own accordion panel
+  # name; most match verbatim, but "display theme options" (e.g.
+  # show_search/show_tick for the bootstrap_dropdown theme) is a distinct
+  # panel from "display" and its field name contains a literal space.
+  category_names <- c(
+    logic = "logic",
+    display = "display",
+    input = "input",
+    other = "other",
+    timer = "timer",
+    statistics = "statistics",
+    display_theme_options = "display theme options"
+  )
+  for (category in names(category_names)) {
     settings <- advanced_settings[[category]]
     if (length(settings) > 0) {
       fields <- c(
         fields,
-        ls_flatten_fields(sprintf("advancedSettings[%s]", category), settings)
+        ls_flatten_fields(
+          sprintf("advancedSettings[%s]", category_names[[category]]),
+          settings
+        )
       )
     }
   }

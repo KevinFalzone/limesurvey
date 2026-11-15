@@ -182,6 +182,32 @@ test_that("ls_save_question still posts type 'L' answers as answeroptions", {
   expect_false(any(grepl("^subquestions\\[", field_names)))
 })
 
+test_that("ls_save_question posts display_theme_options under 'display theme options'", {
+  captured <- new.env()
+  mock_question_save(captured)
+
+  ls_save_question(
+    1,
+    1,
+    code = "Q1",
+    type = "!",
+    text = "Text",
+    question_theme_name = "bootstrap_dropdown",
+    display_theme_options = list(show_search = "true", show_tick = "false")
+  )
+
+  field_names <- names(captured$fields)
+  expect_equal(
+    captured$fields[["advancedSettings[display theme options][show_search]"]],
+    "true"
+  )
+  expect_equal(
+    captured$fields[["advancedSettings[display theme options][show_tick]"]],
+    "false"
+  )
+  expect_false(any(grepl("^advancedSettings\\[display\\]\\[show_", field_names)))
+})
+
 test_that("ls_delete_question validates 'sid'", {
   expect_error(ls_delete_question("1", gid = 1, qid = 1), "sid")
   expect_error(ls_delete_question(NA, gid = 1, qid = 1), "sid")
