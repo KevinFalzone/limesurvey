@@ -39,6 +39,20 @@ ls_question_types <- c(
   "Y" = "yesno"
 )
 
+#' Question Types Whose Choices Are Stored as Subquestions
+#'
+#' Unlike list/dropdown types (whose choices are stored in the `answers`
+#' table and posted as `answeroptions[...]`), these types store their
+#' choices in the `subquestions` table and the admin form posts them as
+#' `subquestions[...]`. Only `"M"` is currently confirmed (from a captured
+#' `saveQuestionData` request); other subquestion-based types (e.g. `"P"`,
+#' `"Q"`, `"K"`, the array types) are not yet handled by [ls_save_question()]
+#' and still go through the `answeroptions[...]` path, which may not work
+#' for them.
+#'
+#' @noRd
+ls_subquestion_types <- c("M")
+
 #' Create or Update a Question
 #'
 #' Creates a new question in a question group, or updates an existing one
@@ -98,7 +112,11 @@ ls_question_types <- c(
 #'   Name the elements to set explicit answer codes (e.g.
 #'   `c(red = "Rouge", green = "Vert")`); codes must be unique,
 #'   alphanumeric, and at most 5 characters. Unnamed elements are coded
-#'   `"A1"`, `"A2"`, etc. Default `NULL` (no answer options).
+#'   `"A1"`, `"A2"`, etc. Default `NULL` (no answer options). For type
+#'   `"M"`, these become subquestions rather than answer options, matching
+#'   how LimeSurvey stores multiple choice items; other subquestion-based
+#'   types (e.g. `"P"`, `"Q"`, `"K"`, the array types) are not yet
+#'   supported.
 #' @param general_settings A named list mirroring the admin UI's
 #'   "General settings" panel. Recognized keys: `mandatory` (one of
 #'   `"Y"`, `"S"` soft, or `"N"`, default `"N"`), `relevance` (the
@@ -314,17 +332,37 @@ ls_save_question <- function(
   }
 
   if (!is.null(answers)) {
-    keys <- paste0("a", seq_along(answers))
-    fields[["answeroptions_sortorder"]] <- paste(keys, collapse = ",")
-    for (i in seq_along(answers)) {
-      fields[[sprintf("answeroptions[%s][0][code]", keys[i])]] <- answer_codes[
-        i
-      ]
-      fields[[sprintf(
-        "answeroptions[%s][0][answeroptionl10n][%s]",
-        keys[i],
-        language
-      )]] <- answers[[i]]
+    if (type %in% ls_subquestion_types) {
+      keys <- sprintf("new%d", seq_along(answers) + 10000)
+      fields[["subquestions_sortorder"]] <- paste(keys, collapse = ",")
+      fields[["subquestions_deletedqids"]] <- ""
+      for (i in seq_along(answers)) {
+        fields[[sprintf("subquestions[%s][0][code]", keys[i])]] <- answer_codes[
+          i
+        ]
+        fields[[sprintf(
+          "subquestions[%s][0][subquestionl10n][%s]",
+          keys[i],
+          language
+        )]] <- answers[[i]]
+        fields[[sprintf("subquestions[%s][0][relevance]", keys[i])]] <- "1"
+      }
+    } else {
+      keys <- paste0("a", seq_along(answers))
+      fields[["answeroptions_sortorder"]] <- paste(keys, collapse = ",")
+      for (i in seq_along(answers)) {
+        fields[[sprintf(
+          "answeroptions[%s][0][code]",
+          keys[i]
+        )]] <- answer_codes[
+          i
+        ]
+        fields[[sprintf(
+          "answeroptions[%s][0][answeroptionl10n][%s]",
+          keys[i],
+          language
+        )]] <- answers[[i]]
+      }
     }
   }
 
