@@ -288,6 +288,75 @@ test_that("ls_update_survey_settings_data_security posts policy flags and per-la
   expect_equal(captured$fields[["datasecerror_en"]], "")
 })
 
+test_that("ls_update_survey_settings_presentation validates 'sid'", {
+  expect_error(ls_update_survey_settings_presentation("1"), "sid")
+})
+
+test_that("ls_update_survey_settings_presentation validates I/Y/N arguments", {
+  expect_error(
+    ls_update_survey_settings_presentation(1, show_welcome = "X"),
+    "show_welcome"
+  )
+  expect_error(
+    ls_update_survey_settings_presentation(1, public_statistics = "X"),
+    "public_statistics"
+  )
+})
+
+test_that("ls_update_survey_settings_presentation validates 'navigation_delay_custom'", {
+  expect_error(
+    ls_update_survey_settings_presentation(1, navigation_delay_custom = "I"),
+    "navigation_delay_custom"
+  )
+})
+
+test_that("ls_update_survey_settings_presentation validates 'question_index'", {
+  expect_error(
+    ls_update_survey_settings_presentation(1, question_index = ""),
+    "question_index"
+  )
+  expect_error(
+    ls_update_survey_settings_presentation(1, question_index = NA),
+    "question_index"
+  )
+})
+
+test_that("ls_update_survey_settings_presentation validates 'navigation_delay'", {
+  expect_error(
+    ls_update_survey_settings_presentation(1, navigation_delay = ""),
+    "navigation_delay"
+  )
+})
+
+test_that("ls_update_survey_settings_presentation posts the expected fields", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_presentation(
+    1,
+    show_welcome = "Y",
+    question_index = "1",
+    navigation_delay = "5",
+    navigation_delay_custom = "Y",
+    public_statistics = "N"
+  )
+
+  expect_equal(captured$fields[["showwelcome"]], "Y")
+  expect_equal(captured$fields[["questionindex"]], "1")
+  expect_equal(captured$fields[["navigationdelay"]], "5")
+  expect_equal(captured$fields[["navigationdelaybutton"]], "Y")
+  expect_equal(captured$fields[["publicstatistics"]], "N")
+  expect_equal(captured$fields[["shownoanswer"]], "I")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
