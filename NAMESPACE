@@ -11,6 +11,7 @@ export(ls_get_version)
 export(ls_save_group)
 export(ls_save_question)
 export(ls_set_session)
+export(ls_update_survey_settings_general)
 importFrom(dplyr,
   filter,
   mutate,
