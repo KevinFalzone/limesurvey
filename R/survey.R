@@ -225,6 +225,104 @@ ls_update_title <- function(sid, title, language) {
   invisible(req_perform(req))
 }
 
+#' Update a Survey's Per-Language Texts
+#'
+#' Updates a survey's title, alias, description, welcome/end messages, end
+#' URL, and date/number format, for one or more languages at once, by
+#' replaying the admin web UI's "Text elements" panel. LimeSurvey's own
+#' form posts these fields for every one of the survey's languages in a
+#' single request, so pass every language whose current texts you want to
+#' keep; a survey language left out of `texts` may have its texts reset
+#' to their format defaults.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param texts A named list keyed by language code (e.g.
+#'   `list(fr = list(title = "...", welcome = "..."), en = list(title =
+#'   "..."))`). Each element is itself a named list with any of: `title`,
+#'   `alias`, `description`, `welcome`, `end_text`, `url`,
+#'   `url_description` (default `""`), `date_format` (default `"1"`),
+#'   `number_format` (default `"0"`).
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_texts <- function(sid, texts) {
+  sid <- ls_validate_id(sid, "sid")
+  if (
+    !is.list(texts) ||
+      length(texts) == 0 ||
+      is.null(names(texts)) ||
+      any(!nzchar(names(texts)))
+  ) {
+    stop(
+      "'texts' must be a non-empty named list, keyed by language code.",
+      call. = FALSE
+    )
+  }
+  if (!all(vapply(texts, is.list, logical(1)))) {
+    stop("Every element of 'texts' must itself be a list.", call. = FALSE)
+  }
+
+  field_defaults <- list(
+    title = "",
+    alias = "",
+    description = "",
+    welcome = "",
+    end_text = "",
+    url = "",
+    url_description = "",
+    date_format = "1",
+    number_format = "0"
+  )
+  field_suffixes <- c(
+    title = "short_title",
+    alias = "alias",
+    description = "description",
+    welcome = "welcome",
+    end_text = "endtext",
+    url = "url",
+    url_description = "urldescrip",
+    date_format = "dateformat",
+    number_format = "numberformat"
+  )
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=surveytexts&surveyid=%d",
+    sid
+  ))
+
+  fields <- list(
+    YII_CSRF_TOKEN = csrf$token,
+    action = "updatesurveylocalesettings",
+    sid = sid,
+    surveyid = sid,
+    responsejson = 1
+  )
+  for (language in names(texts)) {
+    settings <- modifyList(field_defaults, texts[[language]])
+    for (field_name in names(field_defaults)) {
+      fields[[sprintf(
+        "%s_%s",
+        field_suffixes[[field_name]],
+        language
+      )]] <- settings[[field_name]]
+    }
+  }
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    !!!fields
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
