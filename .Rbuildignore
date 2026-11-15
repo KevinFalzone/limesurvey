@@ -3,3 +3,5 @@
 ^LICENSE\.md$
 ^README\.qmd$
 ^cran-comments\.md$
+^flake\.nix$
+^flake\.lock$
