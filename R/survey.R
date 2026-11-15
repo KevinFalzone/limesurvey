@@ -10,12 +10,20 @@
 #'   (default `"en"`).
 #' @param format A character string: one of `"G"` (group by group), `"S"`
 #'   (question by question), or `"A"` (all in one page). Default `"G"`.
+#' @param remove_default_group A logical: whether to delete the "My first
+#'   question group" question group LimeSurvey seeds every new survey
+#'   with. Default `TRUE`.
 #'
 #' @return Invisibly, the integer survey id (`sid`) of the newly created
 #'   survey.
 #'
 #' @export
-ls_create_survey <- function(title, language = "en", format = "G") {
+ls_create_survey <- function(
+  title,
+  language = "en",
+  format = "G",
+  remove_default_group = TRUE
+) {
   if (
     !is.character(title) || length(title) != 1 || is.na(title) || !nzchar(title)
   ) {
@@ -39,10 +47,23 @@ ls_create_survey <- function(title, language = "en", format = "G") {
   ) {
     stop("'format' must be one of \"G\", \"S\", or \"A\".", call. = FALSE)
   }
+  if (!is.logical(remove_default_group) || length(remove_default_group) != 1) {
+    stop(
+      "'remove_default_group' must be a single logical value.",
+      call. = FALSE
+    )
+  }
 
   sid <- ls_new_survey()
   ls_update_general_settings(sid, language = language, format = format)
   ls_update_title(sid, title = title, language = language)
+
+  if (isTRUE(remove_default_group)) {
+    default_gid <- unique(ls_get_questions(sid)$group_id)
+    if (length(default_gid) == 1) {
+      ls_delete_group(sid, as.integer(default_gid))
+    }
+  }
 
   invisible(sid)
 }
