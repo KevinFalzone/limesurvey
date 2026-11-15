@@ -485,6 +485,94 @@ test_that("ls_update_survey_settings_notification posts the expected fields", {
   expect_equal(captured$fields[["googleanalyticsapikeysetting"]], "N")
 })
 
+test_that("ls_update_survey_settings_publication validates 'sid'", {
+  expect_error(ls_update_survey_settings_publication("1"), "sid")
+})
+
+test_that("ls_update_survey_settings_publication validates I/Y/N arguments", {
+  expect_error(
+    ls_update_survey_settings_publication(1, list_public = "X"),
+    "list_public"
+  )
+  expect_error(
+    ls_update_survey_settings_publication(1, use_cookie = "X"),
+    "use_cookie"
+  )
+})
+
+test_that("ls_update_survey_settings_publication validates 'start_date'/'expires' format", {
+  expect_error(
+    ls_update_survey_settings_publication(1, start_date = NA),
+    "start_date"
+  )
+  expect_error(ls_update_survey_settings_publication(1, expires = 1), "expires")
+  expect_error(
+    ls_update_survey_settings_publication(1, start_date = "2026-11-16"),
+    "start_date"
+  )
+  expect_error(
+    ls_update_survey_settings_publication(1, start_date = "16-11-2026 17:01"),
+    "start_date"
+  )
+  expect_error(
+    ls_update_survey_settings_publication(1, expires = "not a date"),
+    "expires"
+  )
+})
+
+test_that("ls_update_survey_settings_publication allows empty 'start_date'/'expires'", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_publication(1)
+
+  expect_equal(captured$fields[["startdate"]], "")
+  expect_equal(captured$fields[["expires"]], "")
+})
+
+test_that("ls_update_survey_settings_publication validates captcha string arguments", {
+  expect_error(
+    ls_update_survey_settings_publication(1, use_captcha_survey_access = NA),
+    "use_captcha_survey_access"
+  )
+})
+
+test_that("ls_update_survey_settings_publication posts the expected fields", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_publication(
+    1,
+    start_date = "2026-01-01 00:00",
+    expires = "2026-12-31 23:59",
+    list_public = "Y",
+    use_captcha_registration = "A"
+  )
+
+  expect_equal(captured$fields[["startdate"]], "2026-01-01 00:00")
+  expect_equal(captured$fields[["expires"]], "2026-12-31 23:59")
+  expect_equal(captured$fields[["listpublic"]], "Y")
+  expect_equal(captured$fields[["usecaptcha_registration"]], "A")
+  expect_equal(captured$fields[["usecookie"]], "I")
+  expect_equal(captured$fields[["usecaptcha_surveyaccess"]], "I")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
