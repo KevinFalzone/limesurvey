@@ -89,7 +89,11 @@ Required for question types that offer a fixed set of choices (e.g.
 Name the elements to set explicit answer codes (e.g.
 \code{c(red = "Rouge", green = "Vert")}); codes must be unique,
 alphanumeric, and at most 5 characters. Unnamed elements are coded
-\code{"A1"}, \code{"A2"}, etc. Default \code{NULL} (no answer options).}
+\code{"A1"}, \code{"A2"}, etc. Default \code{NULL} (no answer options). For type
+\code{"M"}, these become subquestions rather than answer options, matching
+how LimeSurvey stores multiple choice items; other subquestion-based
+types (e.g. \code{"P"}, \code{"Q"}, \code{"K"}, the array types) are not yet
+supported.}
 
 \item{general_settings}{A named list mirroring the admin UI's
 "General settings" panel. Recognized keys: \code{mandatory} (one of
