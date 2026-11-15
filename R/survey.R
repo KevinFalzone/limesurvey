@@ -902,6 +902,125 @@ ls_update_survey_settings_notification <- function(
   invisible(sid)
 }
 
+#' Update a Survey's Publication and Access Control Settings
+#'
+#' Updates a survey's publication and access control options (start/
+#' expiry dates, public listing, cookie-based re-access prevention, and
+#' CAPTCHA requirements for access/registration/save-and-resume), by
+#' replaying the admin web UI's "Publication & access control" panel.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param start_date A character string: the survey's start date-time,
+#'   formatted `"YYYY-MM-DD HH:MM"` (e.g. `"2026-11-16 17:01"`), or `""`
+#'   for none. Default `""`.
+#' @param expires A character string: the survey's expiry date-time,
+#'   formatted `"YYYY-MM-DD HH:MM"` (e.g. `"2026-11-16 17:01"`), or `""`
+#'   for none. Default `""`.
+#' @param list_public A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param use_cookie A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param use_captcha_survey_access A character string controlling when
+#'   a CAPTCHA is required; inspect the admin UI's "Publication & access
+#'   control" panel for the current set of options. Default `"I"`.
+#' @param use_captcha_registration A character string controlling when
+#'   a CAPTCHA is required; inspect the admin UI's "Publication & access
+#'   control" panel for the current set of options. Default `"I"`.
+#' @param use_captcha_save_and_load A character string controlling when
+#'   a CAPTCHA is required; inspect the admin UI's "Publication & access
+#'   control" panel for the current set of options. Default `"I"`.
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_publication <- function(
+  sid,
+  start_date = "",
+  expires = "",
+  list_public = "I",
+  use_cookie = "I",
+  use_captcha_survey_access = "I",
+  use_captcha_registration = "I",
+  use_captcha_save_and_load = "I"
+) {
+  sid <- ls_validate_id(sid, "sid")
+
+  iyn_args <- list(list_public = list_public, use_cookie = use_cookie)
+  for (arg_name in names(iyn_args)) {
+    value <- iyn_args[[arg_name]]
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% c("I", "Y", "N")
+    ) {
+      stop(
+        sprintf("'%s' must be one of \"I\", \"Y\", or \"N\".", arg_name),
+        call. = FALSE
+      )
+    }
+  }
+  date_time_args <- list(start_date = start_date, expires = expires)
+  date_time_pattern <- "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$"
+  for (arg_name in names(date_time_args)) {
+    value <- date_time_args[[arg_name]]
+    if (
+      !is.character(value) ||
+        length(value) != 1 ||
+        is.na(value) ||
+        !grepl(date_time_pattern, value)
+    ) {
+      stop(
+        sprintf(
+          "'%s' must be \"\" or formatted \"YYYY-MM-DD HH:MM\" (e.g. \"2026-11-16 17:01\").",
+          arg_name
+        ),
+        call. = FALSE
+      )
+    }
+  }
+  string_args <- list(
+    use_captcha_survey_access = use_captcha_survey_access,
+    use_captcha_registration = use_captcha_registration,
+    use_captcha_save_and_load = use_captcha_save_and_load
+  )
+  for (arg_name in names(string_args)) {
+    value <- string_args[[arg_name]]
+    if (!is.character(value) || length(value) != 1 || is.na(value)) {
+      stop(
+        sprintf("'%s' must be a single character string.", arg_name),
+        call. = FALSE
+      )
+    }
+  }
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=publication&surveyid=%d",
+    sid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    startdate = start_date,
+    expires = expires,
+    listpublic = list_public,
+    usecookie = use_cookie,
+    usecaptcha_surveyaccess = use_captcha_survey_access,
+    usecaptcha_registration = use_captcha_registration,
+    usecaptcha_saveandload = use_captcha_save_and_load,
+    action = "updatesurveylocalesettings",
+    sid = sid,
+    surveyid = sid,
+    responsejson = 1
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
