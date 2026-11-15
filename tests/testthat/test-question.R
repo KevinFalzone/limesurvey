@@ -181,3 +181,36 @@ test_that("ls_save_question still posts type 'L' answers as answeroptions", {
   expect_true(any(grepl("^answeroptions\\[", field_names)))
   expect_false(any(grepl("^subquestions\\[", field_names)))
 })
+
+test_that("ls_delete_question validates 'sid'", {
+  expect_error(ls_delete_question("1", gid = 1, qid = 1), "sid")
+  expect_error(ls_delete_question(NA, gid = 1, qid = 1), "sid")
+})
+
+test_that("ls_delete_question validates 'gid'", {
+  expect_error(ls_delete_question(1, gid = "1", qid = 1), "gid")
+  expect_error(ls_delete_question(1, gid = NA, qid = 1), "gid")
+})
+
+test_that("ls_delete_question validates 'qid'", {
+  expect_error(ls_delete_question(1, gid = 1, qid = "1"), "qid")
+  expect_error(ls_delete_question(1, gid = 1, qid = NA), "qid")
+})
+
+test_that("ls_delete_question posts the expected fields", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_delete_question(1, gid = 1, qid = 42)
+
+  expect_equal(captured$fields[["qid"]], 42)
+  expect_equal(captured$fields[["redirectTo"]], "groupoverview")
+})

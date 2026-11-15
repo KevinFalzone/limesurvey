@@ -385,6 +385,46 @@ ls_save_question <- function(
   invisible(structure(as.integer(new_qid), sid = sid, gid = gid))
 }
 
+#' Delete a LimeSurvey Question
+#'
+#' Permanently deletes a question (and its answers/subquestions) from a
+#' question group, by replaying the admin web UI's "Delete" action.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param gid An integer (or integer-coercible) question group id.
+#' @param qid An integer (or integer-coercible) question id.
+#'
+#' @return Invisibly, the integer question id (`qid`) that was deleted.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_delete_question <- function(sid, gid, qid) {
+  sid <- ls_validate_id(sid, "sid")
+  gid <- ls_validate_id(gid, "gid")
+  qid <- ls_validate_id(qid, "qid")
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/questionAdministration/view?surveyid=%d&gid=%d&qid=%d",
+    sid,
+    gid,
+    qid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/questionAdministration/delete",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    qid = qid,
+    redirectTo = "groupoverview"
+  )
+  req_perform(req)
+
+  invisible(qid)
+}
+
 #' Flatten a Named List into Bracketed Form Field Names
 #'
 #' Turns `list(a = 1, b = list(c = 2))` into
