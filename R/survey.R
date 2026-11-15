@@ -323,6 +323,134 @@ ls_update_survey_settings_texts <- function(sid, texts) {
   invisible(sid)
 }
 
+#' Update a Survey's Data Security (GDPR) Settings
+#'
+#' Updates a survey's data security policy notice visibility and
+#' per-language policy label/text/error message, by replaying the admin
+#' web UI's "Data security" panel.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param show_policy_notice A character string controlling when the
+#'   data security policy notice is shown to participants; inspect the
+#'   admin UI's "Data security" panel for the current set of options.
+#'   Default `"0"`.
+#' @param show_token_policy A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_register_policy A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param texts A named list keyed by language code (e.g.
+#'   `list(fr = list(label = "...", notice = "..."))`). Each element is
+#'   itself a named list with any of: `label`, `notice`, `error` (all
+#'   default `""`). As with [ls_update_survey_settings_texts()], LimeSurvey's own
+#'   form posts these fields for every one of the survey's languages at
+#'   once, so pass every language whose current text you want to keep.
+#'   Default `list()` (no language-specific text sent).
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_data_security <- function(
+  sid,
+  show_policy_notice = "0",
+  show_token_policy = "I",
+  show_register_policy = "I",
+  texts = list()
+) {
+  sid <- ls_validate_id(sid, "sid")
+  if (
+    !is.character(show_policy_notice) ||
+      length(show_policy_notice) != 1 ||
+      is.na(show_policy_notice) ||
+      !nzchar(show_policy_notice)
+  ) {
+    stop(
+      "'show_policy_notice' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(show_token_policy) ||
+      length(show_token_policy) != 1 ||
+      !show_token_policy %in% c("I", "Y", "N")
+  ) {
+    stop(
+      "'show_token_policy' must be one of \"I\", \"Y\", or \"N\".",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(show_register_policy) ||
+      length(show_register_policy) != 1 ||
+      !show_register_policy %in% c("I", "Y", "N")
+  ) {
+    stop(
+      "'show_register_policy' must be one of \"I\", \"Y\", or \"N\".",
+      call. = FALSE
+    )
+  }
+  if (!is.list(texts)) {
+    stop("'texts' must be a list.", call. = FALSE)
+  }
+  if (
+    length(texts) > 0 &&
+      (is.null(names(texts)) || any(!nzchar(names(texts))))
+  ) {
+    stop(
+      "'texts' must be a named list, keyed by language code.",
+      call. = FALSE
+    )
+  }
+  if (!all(vapply(texts, is.list, logical(1)))) {
+    stop("Every element of 'texts' must itself be a list.", call. = FALSE)
+  }
+
+  field_defaults <- list(label = "", notice = "", error = "")
+  field_suffixes <- c(
+    label = "dataseclabel",
+    notice = "datasec",
+    error = "datasecerror"
+  )
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=datasecurity&surveyid=%d",
+    sid
+  ))
+
+  fields <- list(
+    YII_CSRF_TOKEN = csrf$token,
+    showsurveypolicynotice = show_policy_notice,
+    showtokenpolicy = show_token_policy,
+    showregisterpolicy = show_register_policy
+  )
+  for (language in names(texts)) {
+    settings <- modifyList(field_defaults, texts[[language]])
+    for (field_name in names(field_defaults)) {
+      fields[[sprintf(
+        "%s_%s",
+        field_suffixes[[field_name]],
+        language
+      )]] <- settings[[field_name]]
+    }
+  }
+  fields$action <- "updatesurveylocalesettings"
+  fields$sid <- sid
+  fields$surveyid <- sid
+  fields$responsejson <- 1
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    !!!fields
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
