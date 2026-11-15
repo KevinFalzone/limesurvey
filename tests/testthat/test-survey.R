@@ -413,6 +413,78 @@ test_that("ls_update_survey_settings_participants posts the expected fields", {
   expect_equal(captured$fields[["showtokenpolicy"]], "I")
 })
 
+test_that("ls_update_survey_settings_notification validates 'sid'", {
+  expect_error(ls_update_survey_settings_notification("1"), "sid")
+})
+
+test_that("ls_update_survey_settings_notification validates I/Y/N arguments", {
+  expect_error(
+    ls_update_survey_settings_notification(1, date_stamp = "X"),
+    "date_stamp"
+  )
+  expect_error(
+    ls_update_survey_settings_notification(1, google_analytics_api_key = "X"),
+    "google_analytics_api_key"
+  )
+})
+
+test_that("ls_update_survey_settings_notification validates Y/N-only arguments", {
+  expect_error(
+    ls_update_survey_settings_notification(
+      1,
+      email_notification_to_custom = "I"
+    ),
+    "email_notification_to_custom"
+  )
+  expect_error(
+    ls_update_survey_settings_notification(1, email_response_to_custom = "I"),
+    "email_response_to_custom"
+  )
+})
+
+test_that("ls_update_survey_settings_notification validates email/analytics string args", {
+  expect_error(
+    ls_update_survey_settings_notification(1, email_notification_to = ""),
+    "email_notification_to"
+  )
+  expect_error(
+    ls_update_survey_settings_notification(1, email_response_to = ""),
+    "email_response_to"
+  )
+  expect_error(
+    ls_update_survey_settings_notification(1, google_analytics_style = ""),
+    "google_analytics_style"
+  )
+})
+
+test_that("ls_update_survey_settings_notification posts the expected fields", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_notification(
+    1,
+    date_stamp = "Y",
+    ip_anonymize = "Y",
+    email_notification_to = "admin@example.com",
+    email_notification_to_custom = "Y"
+  )
+
+  expect_equal(captured$fields[["datestamp"]], "Y")
+  expect_equal(captured$fields[["ipanonymize"]], "Y")
+  expect_equal(captured$fields[["emailnotificationto"]], "admin@example.com")
+  expect_equal(captured$fields[["emailnotificationtobutton"]], "Y")
+  expect_equal(captured$fields[["ipaddr"]], "I")
+  expect_equal(captured$fields[["googleanalyticsapikeysetting"]], "N")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
