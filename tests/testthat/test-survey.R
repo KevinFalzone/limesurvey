@@ -227,6 +227,67 @@ test_that("ls_update_survey_settings_texts posts fields for every language given
   expect_equal(captured$fields[["welcome_fr"]], "")
 })
 
+test_that("ls_update_survey_settings_data_security validates 'sid'", {
+  expect_error(ls_update_survey_settings_data_security("1"), "sid")
+})
+
+test_that("ls_update_survey_settings_data_security validates 'show_token_policy'", {
+  expect_error(
+    ls_update_survey_settings_data_security(1, show_token_policy = "X"),
+    "show_token_policy"
+  )
+})
+
+test_that("ls_update_survey_settings_data_security validates 'show_register_policy'", {
+  expect_error(
+    ls_update_survey_settings_data_security(1, show_register_policy = "X"),
+    "show_register_policy"
+  )
+})
+
+test_that("ls_update_survey_settings_data_security validates 'texts'", {
+  expect_error(
+    ls_update_survey_settings_data_security(1, texts = "not a list"),
+    "texts"
+  )
+  expect_error(
+    ls_update_survey_settings_data_security(1, texts = list(label = "x")),
+    "texts"
+  )
+  expect_error(
+    ls_update_survey_settings_data_security(1, texts = list(fr = "not a list")),
+    "list"
+  )
+})
+
+test_that("ls_update_survey_settings_data_security posts policy flags and per-language text", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_data_security(
+    1,
+    show_policy_notice = "1",
+    show_token_policy = "Y",
+    show_register_policy = "N",
+    texts = list(en = list(label = "Policy", notice = "Notice text"))
+  )
+
+  expect_equal(captured$fields[["showsurveypolicynotice"]], "1")
+  expect_equal(captured$fields[["showtokenpolicy"]], "Y")
+  expect_equal(captured$fields[["showregisterpolicy"]], "N")
+  expect_equal(captured$fields[["dataseclabel_en"]], "Policy")
+  expect_equal(captured$fields[["datasec_en"]], "Notice text")
+  expect_equal(captured$fields[["datasecerror_en"]], "")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
