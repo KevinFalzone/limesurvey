@@ -451,6 +451,164 @@ ls_update_survey_settings_data_security <- function(
   invisible(sid)
 }
 
+#' Update a Survey's Presentation and Navigation Settings
+#'
+#' Updates a survey's presentation and navigation options (question
+#' index, progress bar, "No answer" handling, page navigation delay,
+#' public statistics, etc.), by replaying the admin web UI's
+#' "Presentation & navigation" panel.
+#'
+#' @param sid An integer (or integer-coercible) survey id.
+#' @param show_no_answer A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param preselect_no_answer A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_x_questions A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_group_info A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_question_number_code A character string: one of `"I"`
+#'   (inherit the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_welcome A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param show_progress A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param auto_redirect A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param allow_prev A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param print_answers A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param public_statistics A character string: one of `"I"` (inherit
+#'   the global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param public_graphs A character string: one of `"I"` (inherit the
+#'   global setting), `"Y"`, or `"N"`. Default `"I"`.
+#' @param question_index A character string controlling the question
+#'   index/jump menu; inspect the admin UI's "Presentation & navigation"
+#'   panel for the current set of options. Default `"0"` (disabled).
+#' @param navigation_delay A character string: the page navigation delay
+#'   in seconds, only applied when `navigation_delay_custom = "Y"`.
+#'   Default `"-1"`.
+#' @param navigation_delay_custom A character string: `"Y"` to use
+#'   `navigation_delay`, or `"N"` to use the global default delay.
+#'   Default `"N"`.
+#'
+#' @return Invisibly, `sid`.
+#'
+#' @importFrom httr2 req_body_form req_perform
+#'
+#' @export
+ls_update_survey_settings_presentation <- function(
+  sid,
+  show_no_answer = "I",
+  preselect_no_answer = "I",
+  show_x_questions = "I",
+  show_group_info = "I",
+  show_question_number_code = "I",
+  show_welcome = "I",
+  show_progress = "I",
+  question_index = "0",
+  navigation_delay = "-1",
+  navigation_delay_custom = "N",
+  auto_redirect = "I",
+  allow_prev = "I",
+  print_answers = "I",
+  public_statistics = "I",
+  public_graphs = "I"
+) {
+  sid <- ls_validate_id(sid, "sid")
+
+  iyn_args <- list(
+    show_no_answer = show_no_answer,
+    preselect_no_answer = preselect_no_answer,
+    show_x_questions = show_x_questions,
+    show_group_info = show_group_info,
+    show_question_number_code = show_question_number_code,
+    show_welcome = show_welcome,
+    show_progress = show_progress,
+    auto_redirect = auto_redirect,
+    allow_prev = allow_prev,
+    print_answers = print_answers,
+    public_statistics = public_statistics,
+    public_graphs = public_graphs
+  )
+  for (arg_name in names(iyn_args)) {
+    value <- iyn_args[[arg_name]]
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% c("I", "Y", "N")
+    ) {
+      stop(
+        sprintf("'%s' must be one of \"I\", \"Y\", or \"N\".", arg_name),
+        call. = FALSE
+      )
+    }
+  }
+  if (
+    !is.character(navigation_delay_custom) ||
+      length(navigation_delay_custom) != 1 ||
+      !navigation_delay_custom %in% c("Y", "N")
+  ) {
+    stop("'navigation_delay_custom' must be \"Y\" or \"N\".", call. = FALSE)
+  }
+  if (
+    !is.character(question_index) ||
+      length(question_index) != 1 ||
+      is.na(question_index) ||
+      !nzchar(question_index)
+  ) {
+    stop(
+      "'question_index' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+  if (
+    !is.character(navigation_delay) ||
+      length(navigation_delay) != 1 ||
+      is.na(navigation_delay) ||
+      !nzchar(navigation_delay)
+  ) {
+    stop(
+      "'navigation_delay' must be a single non-empty character string.",
+      call. = FALSE
+    )
+  }
+
+  csrf <- ls_csrf_fetch(sprintf(
+    "/index.php/surveyAdministration/rendersidemenulink?subaction=presentation&surveyid=%d",
+    sid
+  ))
+
+  req <- req_body_form(
+    ls_request(
+      "/index.php/admin/database/index/updatesurveylocalesettings",
+      csrf_cookie = csrf$cookie
+    ),
+    YII_CSRF_TOKEN = csrf$token,
+    shownoanswer = show_no_answer,
+    preselectnoanswer = preselect_no_answer,
+    showxquestions = show_x_questions,
+    showgroupinfo = show_group_info,
+    showqnumcode = show_question_number_code,
+    showwelcome = show_welcome,
+    showprogress = show_progress,
+    questionindex = question_index,
+    navigationdelay = navigation_delay,
+    navigationdelaybutton = navigation_delay_custom,
+    autoredirect = auto_redirect,
+    allowprev = allow_prev,
+    printanswers = print_answers,
+    publicstatistics = public_statistics,
+    publicgraphs = public_graphs,
+    action = "updatesurveylocalesettings",
+    sid = sid,
+    surveyid = sid,
+    responsejson = 1
+  )
+  req_perform(req)
+
+  invisible(sid)
+}
+
 #' Delete a LimeSurvey Survey
 #'
 #' Permanently deletes a survey from the configured LimeSurvey instance by
