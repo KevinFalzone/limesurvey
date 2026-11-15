@@ -180,6 +180,53 @@ test_that("ls_update_survey_settings_general omits additional_languages[] when N
   expect_equal(captured$fields[["oldlanguages"]], "")
 })
 
+test_that("ls_update_survey_settings_texts validates 'sid'", {
+  expect_error(
+    ls_update_survey_settings_texts("1", texts = list(fr = list(title = "T"))),
+    "sid"
+  )
+})
+
+test_that("ls_update_survey_settings_texts validates 'texts'", {
+  expect_error(ls_update_survey_settings_texts(1, texts = list()), "texts")
+  expect_error(
+    ls_update_survey_settings_texts(1, texts = list(title = "T")),
+    "texts"
+  )
+  expect_error(
+    ls_update_survey_settings_texts(1, texts = list(fr = "not a list")),
+    "list"
+  )
+})
+
+test_that("ls_update_survey_settings_texts posts fields for every language given", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_texts(
+    1,
+    texts = list(
+      en = list(title = "Training request", welcome = "Welcome"),
+      fr = list(title = "Training application")
+    )
+  )
+
+  expect_equal(captured$fields[["short_title_en"]], "Training request")
+  expect_equal(captured$fields[["welcome_en"]], "Welcome")
+  expect_equal(captured$fields[["dateformat_en"]], "1")
+  expect_equal(captured$fields[["numberformat_en"]], "0")
+  expect_equal(captured$fields[["short_title_fr"]], "Training application")
+  expect_equal(captured$fields[["welcome_fr"]], "")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
