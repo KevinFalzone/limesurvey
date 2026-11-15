@@ -2,6 +2,7 @@
 
 export(ls_copy_survey)
 export(ls_create_survey)
+export(ls_delete_group)
 export(ls_delete_survey)
 export(ls_get_data)
 export(ls_get_questions)
