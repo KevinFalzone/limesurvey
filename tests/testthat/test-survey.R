@@ -357,6 +357,62 @@ test_that("ls_update_survey_settings_presentation posts the expected fields", {
   expect_equal(captured$fields[["shownoanswer"]], "I")
 })
 
+test_that("ls_update_survey_settings_participants validates 'sid'", {
+  expect_error(ls_update_survey_settings_participants("1"), "sid")
+})
+
+test_that("ls_update_survey_settings_participants validates I/Y/N arguments", {
+  expect_error(
+    ls_update_survey_settings_participants(1, anonymized = "X"),
+    "anonymized"
+  )
+  expect_error(
+    ls_update_survey_settings_participants(1, send_confirmation = "X"),
+    "send_confirmation"
+  )
+})
+
+test_that("ls_update_survey_settings_participants validates 'token_length_custom'", {
+  expect_error(
+    ls_update_survey_settings_participants(1, token_length_custom = "I"),
+    "token_length_custom"
+  )
+})
+
+test_that("ls_update_survey_settings_participants validates 'token_length'", {
+  expect_error(
+    ls_update_survey_settings_participants(1, token_length = ""),
+    "token_length"
+  )
+})
+
+test_that("ls_update_survey_settings_participants posts the expected fields", {
+  captured <- new.env()
+  local_mocked_bindings(
+    ls_csrf_fetch = function(...) list(token = "tok", cookie = "cookie"),
+    ls_request = function(...) "dummy-request",
+    req_body_form = function(req, ...) {
+      captured$fields <- rlang::list2(...)
+      req
+    },
+    req_perform = function(...) "dummy-response"
+  )
+
+  ls_update_survey_settings_participants(
+    1,
+    anonymized = "Y",
+    token_length = "15",
+    token_length_custom = "Y",
+    allow_register = "N"
+  )
+
+  expect_equal(captured$fields[["anonymized"]], "Y")
+  expect_equal(captured$fields[["tokenlength"]], "15")
+  expect_equal(captured$fields[["tokenlengthbutton"]], "Y")
+  expect_equal(captured$fields[["allowregister"]], "N")
+  expect_equal(captured$fields[["showtokenpolicy"]], "I")
+})
+
 test_that("ls_delete_survey validates 'sid'", {
   expect_error(ls_delete_survey("511927"), "sid")
   expect_error(ls_delete_survey(NA), "sid")
