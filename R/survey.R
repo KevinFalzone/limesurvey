@@ -1118,6 +1118,128 @@ ls_copy_survey <- function(sid, title = NULL) {
   invisible(as.integer(new_sid))
 }
 
+#' Default Survey List Column Mapping
+#'
+#' The default mapping from the "List surveys" admin page's column headers
+#' to the column names [ls_get_surveys()] renames them to.
+#'
+#' @return A named character vector: HTML column headers as names, output
+#'   column names as values.
+#'
+#' @export
+ls_default_survey_mapping <- function() {
+  c(
+    "Survey ID" = "survey_id",
+    "Status" = "status",
+    "Title" = "title",
+    "Created" = "created",
+    "Responses" = "responses",
+    "Last modified" = "last_modified",
+    "Group" = "group",
+    "Owner" = "owner"
+  )
+}
+
+#' Retrieve the Survey List from LimeSurvey
+#'
+#' Retrieves the list of surveys, from the LimeSurvey instance set with
+#' [ls_set_session()], by replaying the admin web UI's "List surveys"
+#' table, paging through it as needed to return every survey.
+#'
+#' @param mapping A named character vector mapping the table's HTML
+#'   column headers to column names in the returned tibble, e.g.
+#'   `c("Survey ID" = "survey_id")`. A header found in `mapping` is
+#'   renamed accordingly; any other header is kept under its original
+#'   text (this lets the table grow or shrink columns across LimeSurvey
+#'   versions without losing data), and a header with no text (e.g. the
+#'   checkbox/action columns) is named `"untitled_1"`, `"untitled_2"`,
+#'   etc, in column order. Defaults to [ls_default_survey_mapping()];
+#'   extend it with e.g. `c(ls_default_survey_mapping(), "Action" =
+#'   "action")`.
+#'
+#' @return A tibble with one row per survey.
+#'
+#' @importFrom dplyr bind_rows
+#' @importFrom httr2 req_perform resp_body_html
+#' @importFrom rvest html_element html_elements html_table html_text2
+#'
+#' @export
+ls_get_surveys <- function(mapping = ls_default_survey_mapping()) {
+  if (
+    !is.character(mapping) ||
+      is.null(names(mapping)) ||
+      any(!nzchar(names(mapping))) ||
+      anyNA(mapping)
+  ) {
+    stop(
+      "'mapping' must be a named character vector, mapping HTML column ",
+      "headers to column names.",
+      call. = FALSE
+    )
+  }
+
+  # 500 is the admin UI's own largest "rows per page" option.
+  page_size <- 500
+  page <- 1
+  pages <- list()
+
+  repeat {
+    html <- ls_get_surveys_page(page, page_size)
+    tbl <- html_element(html, "#survey-grid table")
+    if (is.na(tbl)) {
+      stop(
+        "Could not find the survey list table (page layout may have changed).",
+        call. = FALSE
+      )
+    }
+
+    # Headers are read separately and assigned by position (rather than
+    # relying on html_table(header = TRUE)'s own name repair) and repaired
+    # right away, before bind_rows() gets a chance to silently repair any
+    # blank/duplicate ones itself by coercing to a tibble.
+    headers <- html_text2(html_elements(tbl, "thead th"))
+    body <- html_table(tbl, header = FALSE, convert = FALSE)[-1, , drop = FALSE]
+    names(body) <- ls_repair_header_names(headers)
+    pages[[page]] <- body
+
+    total <- ls_survey_grid_total(html)
+    fetched <- sum(vapply(pages, nrow, integer(1)))
+    if (is.na(total) || fetched >= total) {
+      break
+    }
+    page <- page + 1
+  }
+
+  surveys <- bind_rows(pages)
+  known <- match(names(surveys), names(mapping))
+  names(surveys)[!is.na(known)] <- mapping[known[!is.na(known)]]
+
+  surveys
+}
+
+ls_get_surveys_page <- function(page, page_size) {
+  resp <- req_perform(ls_request(sprintf(
+    "/index.php/surveyAdministration/listsurveys?pageSize=%d&Survey_page=%d",
+    page_size,
+    page
+  )))
+  resp_body_html(resp)
+}
+
+ls_survey_grid_total <- function(html) {
+  summary <- html_element(html, "#survey-grid .summary")
+  if (is.na(summary)) {
+    return(NA_integer_)
+  }
+  as.integer(regmatches_first(html_text2(summary), "of ([0-9]+) result"))
+}
+
+ls_repair_header_names <- function(x) {
+  blank <- !nzchar(x)
+  x[blank] <- paste0("untitled_", seq_len(sum(blank)))
+  x
+}
+
 ls_validate_id <- function(x, name = "sid") {
   if (!is.numeric(x) || length(x) != 1 || is.na(x) || x != as.integer(x)) {
     stop(sprintf("'%s' must be a single integer id.", name), call. = FALSE)
