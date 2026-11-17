@@ -2,11 +2,13 @@
 
 export(ls_copy_survey)
 export(ls_create_survey)
+export(ls_default_survey_mapping)
 export(ls_delete_group)
 export(ls_delete_question)
 export(ls_delete_survey)
 export(ls_get_data)
 export(ls_get_questions)
+export(ls_get_surveys)
 export(ls_get_version)
 export(ls_save_group)
 export(ls_save_question)
@@ -19,6 +21,7 @@ export(ls_update_survey_settings_presentation)
 export(ls_update_survey_settings_publication)
 export(ls_update_survey_settings_texts)
 importFrom(dplyr,
+  bind_rows,
   filter,
   mutate,
   pull,
@@ -42,6 +45,8 @@ importFrom(readr,
 importFrom(rvest,
   html_attr,
   html_element,
+  html_elements,
+  html_table,
   html_text2
 )
 importFrom(utils,modifyList)
