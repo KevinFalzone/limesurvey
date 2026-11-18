@@ -34,9 +34,9 @@ named in the exported columns. One of:
 }}
 
 \item{columns}{A character vector of column identifiers to export, each
-in the format \code{"SIDXGIDXQID"} (\code{SID}/\code{GID}/\code{QID} being the survey,
-group, and question ids). If \code{NULL} (default), every question is
-exported; see \code{\link[=ls_get_questions]{ls_get_questions()}} to build a subset.}
+in the format \code{"Q{id}"} for a question or \code{"Q{parent_id}_S{id}"} for a
+subquestion. If \code{NULL} (default), every question is exported; see
+\code{\link[=ls_get_questions]{ls_get_questions()}} to build a subset.}
 
 \item{language}{A character string: the language the exported question
 labels are rendered in (default \code{"en"}).}

@@ -23,6 +23,7 @@ export(ls_update_survey_settings_texts)
 importFrom(dplyr,
   bind_rows,
   filter,
+  if_else,
   mutate,
   pull,
   select
