@@ -1,4 +1,11 @@
-utils::globalVariables(c("id", "class", "group_id", "name", "path"))
+utils::globalVariables(c(
+  "id",
+  "class",
+  "group_id",
+  "name",
+  "path",
+  "question_id"
+))
 
 #' Carry the Last Non-Empty Value Forward
 #'
@@ -24,11 +31,13 @@ ls_fill_down <- function(x) {
 #'
 #' @param sid An integer (or integer-coercible) survey id.
 #'
-#' @return A tibble with one row per question, with columns `group_id`,
-#'   `id`, `name`, and `path` (a `"SIDXGIDXQID"` column identifier, see
-#'   [ls_get_data()]).
+#' @return A tibble with one row per question (including subquestions, e.g.
+#'   each item of a multiple choice question), with columns `group_id`,
+#'   `id`, `name`, and `path` (a `colselect[]` column identifier, see
+#'   [ls_get_data()]): `"Q{id}"` for a question, `"Q{parent_id}_S{id}"` for
+#'   a subquestion.
 #'
-#' @importFrom dplyr filter mutate select
+#' @importFrom dplyr filter if_else mutate select
 #' @importFrom httr2 req_perform resp_body_string resp_header
 #' @importFrom readr read_tsv
 #'
@@ -61,11 +70,22 @@ ls_get_questions <- function(sid) {
     structure_tsv$id,
     ""
   ))
+  structure_tsv$question_id <- ls_fill_down(ifelse(
+    structure_tsv$class == "Q",
+    structure_tsv$id,
+    ""
+  ))
 
   structure_tsv |>
     filter(class != "G") |>
-    select(group_id, id, name) |>
-    mutate(path = paste0(sid, "X", group_id, "X", id))
+    mutate(
+      path = if_else(
+        class == "SQ",
+        paste0("Q", question_id, "_S", id),
+        paste0("Q", id)
+      )
+    ) |>
+    select(group_id, id, name, path)
 }
 
 #' Retrieve Survey Data from LimeSurvey
@@ -86,9 +106,9 @@ ls_get_questions <- function(sid) {
 #'   * `"full"` the full question text
 #'   * `"codetext"` the code and full question text
 #' @param columns A character vector of column identifiers to export, each
-#'   in the format `"SIDXGIDXQID"` (`SID`/`GID`/`QID` being the survey,
-#'   group, and question ids). If `NULL` (default), every question is
-#'   exported; see [ls_get_questions()] to build a subset.
+#'   in the format `"Q{id}"` for a question or `"Q{parent_id}_S{id}"` for a
+#'   subquestion. If `NULL` (default), every question is exported; see
+#'   [ls_get_questions()] to build a subset.
 #' @param language A character string: the language the exported question
 #'   labels are rendered in (default `"en"`).
 #'
@@ -173,11 +193,11 @@ ls_get_data <- function(
         call. = FALSE
       )
     }
-    if (any(!grepl("^\\d+X\\d+X[[:alnum:]]+$", columns))) {
+    if (any(!grepl("^Q\\d+(_S\\d+)?$", columns))) {
       stop(
         paste0(
-          "All elements in 'columns' must be in the format \"SIDXGIDXQID\", ",
-          "where SID is the survey id, GID is the group id, and QID is the question id."
+          "All elements in 'columns' must be in the format \"Q{id}\" or ",
+          "\"Q{parent_id}_S{id}\", where id/parent_id are question ids."
         ),
         call. = FALSE
       )
