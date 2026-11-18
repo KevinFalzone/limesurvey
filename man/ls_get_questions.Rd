@@ -10,9 +10,11 @@ ls_get_questions(sid)
 \item{sid}{An integer (or integer-coercible) survey id.}
 }
 \value{
-A tibble with one row per question, with columns \code{group_id},
-\code{id}, \code{name}, and \code{path} (a \code{"SIDXGIDXQID"} column identifier, see
-\code{\link[=ls_get_data]{ls_get_data()}}).
+A tibble with one row per question (including subquestions, e.g.
+each item of a multiple choice question), with columns \code{group_id},
+\code{id}, \code{name}, and \code{path} (a \code{colselect[]} column identifier, see
+\code{\link[=ls_get_data]{ls_get_data()}}): \code{"Q{id}"} for a question, \code{"Q{parent_id}_S{id}"} for
+a subquestion.
 }
 \description{
 Retrieves the list of questions for a survey, from the LimeSurvey

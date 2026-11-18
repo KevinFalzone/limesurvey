@@ -11,6 +11,52 @@ test_that("ls_get_questions validates 'sid'", {
   expect_error(ls_get_questions(1.5), "sid")
 })
 
+test_that("ls_get_questions builds 'path' as Q{id}/Q{parent_id}_S{id}", {
+  structure_tsv <- paste(
+    "id\tclass\tname",
+    "100\tG\tDemandeur",
+    "1\tQ\trequestId",
+    "2\tQ\trequestInitiator",
+    "3\tSQ\tagent",
+    "4\tSQ\tsuper",
+    "9\tA\tdummy-answer-option",
+    "200\tG\tFormation",
+    "5\tQ\ttrainingInvolves",
+    "6\tSQ\ttrvl",
+    "7\tSQ\tlodg",
+    sep = "\n"
+  )
+  local_mocked_bindings(
+    ls_request = function(...) "dummy-request",
+    req_perform = function(...) "dummy-response",
+    resp_header = function(...) "text/tab-separated-values",
+    resp_body_string = function(...) structure_tsv
+  )
+
+  data <- ls_get_questions(1)
+
+  expect_equal(
+    data$path,
+    c("Q1", "Q2", "Q2_S3", "Q2_S4", "Q5", "Q5_S6", "Q5_S7")
+  )
+  expect_equal(
+    data$name,
+    c(
+      "requestId",
+      "requestInitiator",
+      "agent",
+      "super",
+      "trainingInvolves",
+      "trvl",
+      "lodg"
+    )
+  )
+  expect_equal(
+    data$group_id,
+    c("100", "100", "100", "100", "200", "200", "200")
+  )
+})
+
 test_that("ls_get_data validates 'sid'", {
   expect_error(
     ls_get_data(
@@ -107,7 +153,7 @@ test_that("ls_get_data validates 'columns'", {
       headstyle = "code",
       columns = "not-a-path"
     ),
-    "SIDXGIDXQID"
+    "Q\\{id\\}"
   )
   expect_error(
     ls_get_data(
