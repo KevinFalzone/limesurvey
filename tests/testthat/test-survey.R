@@ -591,3 +591,120 @@ test_that("ls_copy_survey validates 'title'", {
   expect_error(ls_copy_survey(1, title = NA), "title")
   expect_error(ls_copy_survey(1, title = 1), "title")
 })
+
+fake_survey_grid_page <- function(headers, rows, total) {
+  header_html <- paste0("<th>", headers, "</th>", collapse = "")
+  row_html <- function(cells) {
+    paste0("<tr>", paste0("<td>", cells, "</td>", collapse = ""), "</tr>")
+  }
+  rows_html <- paste(vapply(rows, row_html, character(1)), collapse = "")
+  rvest::read_html(sprintf(
+    '<div id="survey-grid">
+       <div class="summary">Displaying 1-%d of %d result(s).</div>
+       <table><thead><tr>%s</tr></thead><tbody>%s</tbody></table>
+     </div>',
+    length(rows),
+    total,
+    header_html,
+    rows_html
+  ))
+}
+
+test_that("ls_get_surveys validates 'mapping'", {
+  expect_error(ls_get_surveys(mapping = c("a", "b")), "mapping")
+  expect_error(ls_get_surveys(mapping = c(a = NA_character_)), "mapping")
+  expect_error(ls_get_surveys(mapping = c(a = "b", "c")), "mapping")
+})
+
+test_that("ls_default_survey_mapping returns the expected headers", {
+  mapping <- ls_default_survey_mapping()
+
+  expect_named(
+    mapping,
+    c(
+      "Survey ID",
+      "Status",
+      "Title",
+      "Created",
+      "Responses",
+      "Last modified",
+      "Group",
+      "Owner"
+    )
+  )
+  expect_equal(unname(mapping[["Survey ID"]]), "survey_id")
+})
+
+test_that("ls_get_surveys renames known headers and repairs blank ones", {
+  local_mocked_bindings(
+    ls_get_surveys_page = function(page, page_size) {
+      fake_survey_grid_page(
+        headers = c("", "Survey ID", "Status", "Title", ""),
+        rows = list(c("", "442115", "Inactive", "Test survey", "")),
+        total = 1
+      )
+    }
+  )
+
+  surveys <- ls_get_surveys()
+
+  expect_equal(
+    names(surveys),
+    c("untitled_1", "survey_id", "status", "title", "untitled_2")
+  )
+  expect_equal(surveys$survey_id, "442115")
+  expect_equal(surveys$title, "Test survey")
+})
+
+test_that("ls_get_surveys keeps unmapped, non-blank headers as-is", {
+  local_mocked_bindings(
+    ls_get_surveys_page = function(page, page_size) {
+      fake_survey_grid_page(
+        headers = c("Survey ID", "Action"),
+        rows = list(c("1", "Delete")),
+        total = 1
+      )
+    }
+  )
+
+  surveys <- ls_get_surveys()
+
+  expect_equal(names(surveys), c("survey_id", "Action"))
+})
+
+test_that("ls_get_surveys pages through results until all rows are fetched", {
+  calls <- 0L
+  local_mocked_bindings(
+    ls_get_surveys_page = function(page, page_size) {
+      calls <<- calls + 1L
+      if (page == 1) {
+        fake_survey_grid_page(
+          headers = "Survey ID",
+          rows = list("1", "2"),
+          total = 3
+        )
+      } else {
+        fake_survey_grid_page(
+          headers = "Survey ID",
+          rows = list("3"),
+          total = 3
+        )
+      }
+    }
+  )
+
+  surveys <- ls_get_surveys()
+
+  expect_equal(calls, 2L)
+  expect_equal(surveys$survey_id, c("1", "2", "3"))
+})
+
+test_that("ls_get_surveys errors when the survey table can't be found", {
+  local_mocked_bindings(
+    ls_get_surveys_page = function(page, page_size) {
+      rvest::read_html("<p>No table here</p>")
+    }
+  )
+
+  expect_error(ls_get_surveys(), "layout")
+})
